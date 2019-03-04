@@ -50,16 +50,22 @@
             <p id="p1">please Sign In</p>
             <p id="p2">Token:</p>
             <!-- <p id="token">Your token will apear here when it is ready!</p> -->
-            <textarea id="token" rows="20" cols="30">Your token will apear here when it is ready!</textarea>
+            <textarea id="idToken" rows="20" cols="30">Your token will apear here when it is ready!</textarea>
         </div>
     </form>
     <script>
         let UserPoolId = getCookie("UserPoolId")
         let ClientId = getCookie("ClientId")
+        let username = getCookie("username")
+        let idToken = getCookie("idToken")
         console.log("Getting Cookie for Cognito UserPoolId:",UserPoolId)
         console.log("Getting Cookie for Cognito ClientId:",ClientId)
+        console.log("Getting Cookie for Cognito username:",username)
+        console.log("Getting Cookie for Cognito idToken:",idToken)
         document.getElementById("UserPoolId").value=UserPoolId;
         document.getElementById("ClientId").value=ClientId;
+        document.getElementById("username").value=username;
+        document.getElementById("idToken").value=idToken;
         function setCookie(name, value, days) {
             var expires = "";
             if (days) {
@@ -115,7 +121,9 @@
                     hold = result;
                     //console.log(cognitoUser);
                     idToken = cognitoUser.signInUserSession.idToken.jwtToken
-                    document.getElementById("token").innerHTML = idToken;
+                    setCookie("idToken",idToken,1)
+                    setCookie("username",username,1)
+                    document.getElementById("idToken").innerHTML = idToken;
                     console.log("Cognito Token:\n"+idToken)
                     var apigClient = apigClientFactory.newClient({
                         sessionToken: 'SESSION_TOKEN', //OPTIONAL: If you are using temporary credentials you must include the session token
