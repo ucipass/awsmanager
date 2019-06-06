@@ -1,5 +1,5 @@
 
-let albumBucketName = ''
+let albumBucketName = '' 
 let accessKeyId = ''
 let secretAccessKey = ''
 console.log("APP STARTED!" )
