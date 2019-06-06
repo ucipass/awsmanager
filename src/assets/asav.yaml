@@ -1,0 +1,245 @@
+Description:
+  ASAv 9.10 Instance
+
+Parameters:
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+    Default: DEMO-EC2-ASAV
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 172.30.0.0/16
+
+  PublicSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 172.30.11.0/24
+
+  PrivateSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+    Type: String
+    Default: 172.30.21.0/24
+
+  myKeyPair: 
+    Description: Amazon EC2 Key Pair
+    Type: "AWS::EC2::KeyPair::KeyName"
+    Default: AA-TEST
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: m4.xlarge
+    AllowedValues:
+    - m4.large
+    - m4.xlarge
+
+Mappings: 
+  RegionMap: 
+    "us-east-1": 
+      AMI: "ami-099b40fb9f6f4f170"
+    "us-east-2":
+      AMI: "ami-0bc463be2c5563ab0"
+    "us-west-1":
+      AMI: "ami-0ea17e02065a25ef3"
+    "us-west-2":
+      AMI: "ami-0bf6af6883b32dd4b"
+
+Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 
+        Ref: VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: 
+            Ref: EnvironmentName
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: 
+            Ref: EnvironmentName
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: 
+        Ref: InternetGateway
+      VpcId: 
+        Ref: VPC     
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: 
+        Ref: VPC
+      AvailabilityZone: 
+        Fn::Select: 
+          - 0
+          - Fn::GetAZs: ""      
+      CidrBlock: 
+        Ref: PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:  Private Subnet (AZ1)
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: 
+        Ref: VPC
+      AvailabilityZone: 
+        Fn::Select: 
+          - 0
+          - Fn::GetAZs: ""
+      CidrBlock: 
+        Ref: PublicSubnet1CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Public Subnet (AZ1)
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: 
+        Ref: VPC
+      Tags:
+        - Key: Name
+          Value:  Public Routes
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: 
+        Ref: VPC
+      Tags:
+        - Key: Name
+          Value: Private Routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: 
+        Ref: PublicRouteTable
+      SubnetId: 
+        Ref: PublicSubnet1
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: 
+        Ref: PrivateRouteTable
+      SubnetId: 
+        Ref: PrivateSubnet1
+
+  InstanceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      Tags:
+      - Key: Name
+        Value: SG
+      VpcId:
+        Ref: VPC
+      GroupDescription: "Enable ALL"
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          CidrIp: "0.0.0.0/0"
+
+  NetworkInterfaceGIG0:
+    Type: AWS::EC2::NetworkInterface
+    DependsOn: InstanceSecurityGroup
+    Properties:
+      Tags:
+        - Key: Name
+          Value: SG
+      Description: ASAv GIG0/0
+      SourceDestCheck: 'false'
+      GroupSet:
+        - Ref: InstanceSecurityGroup
+      SubnetId: 
+        Ref: PrivateSubnet1
+
+  NetworkInterfaceAttachment:
+    Type: AWS::EC2::NetworkInterfaceAttachment
+    DependsOn: ASAvInstance1
+    Properties:
+      InstanceId:
+        Ref: ASAvInstance1
+      NetworkInterfaceId:
+        Ref: NetworkInterfaceGIG0
+      DeviceIndex: 1
+
+  ASAvInstance1:
+    Type: "AWS::EC2::Instance"
+    DependsOn: NetworkInterfaceGIG0
+    Properties:
+      ImageId: { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]}
+      InstanceType:
+        Ref: InstanceType
+      KeyName: 
+        Ref: myKeyPair
+      SubnetId: 
+        Ref: PublicSubnet1
+      SecurityGroupIds:
+        - Ref: InstanceSecurityGroup
+      UserData:
+        Fn::Base64:                                # YAML makes userdata much cleaner DELETE CISCO USER FOR SECURE ACCESS
+          Fn::Sub: |
+            ! required config start
+            ! ASA Version 9.10.1.11
+            interface management0/0
+            management-only
+            nameif management
+            security-level 100
+            ip address dhcp setroute
+            no shut
+            !
+            same-security-traffic permit inter-interface
+            same-security-traffic permit intra-interface
+            !
+            crypto key generate rsa modulus 2048 noconfirm
+            ssh version 2
+            ssh key-exchange group dh-group14-sha1
+            ssh 0 0 management
+            ssh timeout 30
+            aaa authentication ssh console LOCAL
+            username admin password admin privilege 15
+            username cisco password cisco privilege 15
+            username admin attributes
+            service-type admin
+            ! required config end
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Sub: \${EnvironmentName}
+
+Outputs:
+  PublicIp:
+    Description: ASA Public IP
+    Value: 
+      Fn::GetAtt: ASAvInstance1.PublicIp
+    Export:
+      Name: 
+        Fn::Sub: "ASAPublicIp"
+
