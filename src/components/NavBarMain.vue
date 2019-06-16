@@ -7,14 +7,14 @@
 
       <b-collapse size='lg' id="nav-collapse" is-nav>
         <b-navbar-nav>
-          <b-dropdown left variant="dark" text='Menu'>
+          <b-dropdown left variant="outline-primary"  text='Menu'>
             <b-dropdown-item v-b-modal.settings>Settings</b-dropdown-item>
             <b-dropdown-item v-b-modal.modalLogging>Logging</b-dropdown-item>
-            <b-dropdown-item v-if='false' @click="test">Test</b-dropdown-item>
+            <b-dropdown-item v-if='true' @click="test">Test</b-dropdown-item>
           </b-dropdown>
         </b-navbar-nav>
         <b-navbar-nav class="ml-auto">
-          <b-button variant='primary'         v-if='!loggedIn' @click="showLoginWindow()">Login</b-button>
+          <b-button variant='outline-primary'         v-if='!loggedIn' @click="showLoginWindow()">Login</b-button>
           <b-button variant='outline-success' v-if='loggedIn' @click="logout()">Logout</b-button>
         </b-navbar-nav>
       </b-collapse>
@@ -50,19 +50,23 @@
     </b-modal>
 
     <ModalLogin id='loginModal'></ModalLogin>
+    <ModalTest id='testModal' :json="this.getjson"></ModalTest>
   </div>
 </template>
 
 <script>
 import ModalLogin from './ModalLogin.vue'
+import ModalTest from './ModalTest.vue'
 let setCookie = require("./cookies.js").setCookie
 let getCookie = require("./cookies.js").getCookie
+import {dirBucket } from '@/components/cloudform.js'
+
 
 
 export default {
   name: 'NavBarMain',
   components: {
-    ModalLogin
+    ModalLogin, ModalTest
   },
   props: {
     title: {
@@ -102,6 +106,9 @@ export default {
     showLoginWindow: function(){
       this.$root.$emit('showLoginWindow')
     },
+    showTestWindow: function(){
+      this.$root.$emit('showTestWindow')
+    },
     checkedtmpEvent: function(){
       this.$root.$emit('checkedtmpEvent', this.checkedtmp )
     },
@@ -119,8 +126,21 @@ export default {
       this.$root.$emit('logoutEvent')
       console.log("Logout Event")
     },
-    test(){
+    async test(){
       console.log("test")
+      this.showTestWindow()
+      // try {
+      //   let data = await dirBucket(getCookie('bucket'))
+      //   console.log("Bucket",data)        
+      // } catch (error) {
+      //   console.log("Error",error)
+      // }
+
+    }
+  },
+  computed:{
+    getjson(){
+      return{ prefix:this.prefix,region:this.region}
     }
   },
   mounted: function () {

@@ -27,6 +27,7 @@
     <b-row align-h="center" class="m-1">
       <b-col class="col-4 text-right"><b-button @click='start' variant='primary'>Start</b-button></b-col>
     </b-row>
+
   </b-container>
 </template>
 

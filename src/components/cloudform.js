@@ -39,7 +39,6 @@ export async function createStack(stackName,template){
 
 }
 
-
 export async function deleteStack(stackName){
   let getCookie = require("./cookies.js").getCookie
   let region = getCookie('region')
@@ -74,7 +73,6 @@ export async function deleteStack(stackName){
   }
 
 }
-
 
 export async function cFormEvents(stackName){
   let getCookie = require("./cookies.js").getCookie
@@ -122,6 +120,37 @@ export async function stackOutput(stackName){
     let output = stack.Stacks[0].Outputs
     return output
   } catch (error) {
+    return Promise.reject(error)
+  }
+
+}
+
+export async function dirBucket(bucket){
+  console.log("Test")
+  let getCookie = require("./cookies.js").getCookie
+  let region = getCookie('region')
+  let accessKeyId = getCookie('accessKeyId')
+  let secretAccessKey = getCookie('secretAccessKey')
+  console.log("Test")
+      
+  var AWS = require('aws-sdk');
+  AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, region: region});
+  var s3 = new AWS.S3();
+
+  var params = { 
+  Bucket: bucket
+  // ,
+  // Delimiter: '/',
+  // Prefix: 's/5469b2f5b4292d22522e84e0/ms.files/'
+  }
+
+
+  try {
+    let data = await s3.listObjects(params).promise()
+    console.log("OK")
+    return data
+  } catch (error) {
+    console.log("ERROR")
     return Promise.reject(error)
   }
 
