@@ -8,9 +8,10 @@
       <b-collapse size='lg' id="nav-collapse" is-nav>
         <b-navbar-nav>
           <b-dropdown left variant="outline-primary"  text='Menu'>
+            <b-dropdown-item v-b-modal.ModalCloudForm>CloudFormation Manager</b-dropdown-item>
             <b-dropdown-item v-b-modal.settings>Settings</b-dropdown-item>
-            <b-dropdown-item v-b-modal.modalLogging>Logging</b-dropdown-item>
-            <b-dropdown-item v-if='true' @click="test">Test</b-dropdown-item>
+            <b-dropdown-item v-if='false' v-b-modal.modalLogging>Logging</b-dropdown-item>
+            <b-dropdown-item v-if='false' @click="test">Test</b-dropdown-item>
           </b-dropdown>
         </b-navbar-nav>
         <b-navbar-nav class="ml-auto">
@@ -23,17 +24,21 @@
     <b-modal id="settings" v-model='showSettings' class="text-center" title="Default Settings">
         <b-container>
           <b-row align-h="center">
-            <b-col class="col-4 text-right"><label for="prefix" class="m-0" >Prefix</label></b-col>
+            <b-col class="col-4 text-right"><label for="prefix" class="m-0" >Common Prefix</label></b-col>
             <b-col><b-input v-model='prefix' id='prefix'></b-input></b-col>
           </b-row>
           <b-row align-h="center">
-            <b-col class="col-4 text-right"><label for="region" class="m-0" >region</label></b-col>
+            <b-col class="col-4 text-right"><label for="region" class="m-0" >AWS Region</label></b-col>
             <b-col>
               <b-form-select v-model="region" :options="regionOptions"></b-form-select>
             </b-col>
           </b-row>
           <b-row align-h="center">
-            <b-col class="col-4 text-right"><label for="bucket" class="m-0" >bucket</label></b-col>
+            <b-col class="col-4 text-right"><label for="keypair" class="m-0" >EC2 Key Pair</label></b-col>
+            <b-col><b-input v-model='keypair' id='keypair'></b-input></b-col>
+          </b-row>
+          <b-row align-h="center">
+            <b-col class="col-4 text-right"><label for="bucket" class="m-0" >S3 Bucket</label></b-col>
             <b-col><b-input v-model='bucket' id='bucket'></b-input></b-col>
           </b-row>
         </b-container>
@@ -50,23 +55,25 @@
     </b-modal>
 
     <ModalLogin id='loginModal'></ModalLogin>
-    <ModalTest id='testModal' :json="this.getjson"></ModalTest>
+    <ModalTest id='testModal' title='Test' :json="this.getjson"></ModalTest>
+    <ModalCloudForm id='ModalCloudForm' title='Cloudformation Manager' :json="this.getjson"></ModalCloudForm>
   </div>
 </template>
 
 <script>
 import ModalLogin from './ModalLogin.vue'
 import ModalTest from './ModalTest.vue'
+import ModalCloudForm from './ModalCloudForm.vue'
 let setCookie = require("./cookies.js").setCookie
 let getCookie = require("./cookies.js").getCookie
-import {dirBucket } from '@/components/cloudform.js'
+//import {dirBucket } from '@/components/cloudform.js'
 
 
 
 export default {
   name: 'NavBarMain',
   components: {
-    ModalLogin, ModalTest
+    ModalLogin, ModalTest, ModalCloudForm
   },
   props: {
     title: {
@@ -83,8 +90,9 @@ export default {
       showSettings: false,
       loggedIn: false,
       prefix: "AACF",
-      bucket: "AACF_bucket",
+      bucket: "AACF_S3",
       region: "us-east-1",
+      keypair: "AACF_KP",
       regionOptions:[
           { value: 'us-east-1', text: 'us-east-1' },
           { value: 'us-east-2', text: 'us-east-2' },
@@ -95,9 +103,14 @@ export default {
   },
   methods:{
     setSettings: function(){
+      setCookie("keypair", this.keypair,365)
       setCookie("prefix", this.prefix,365)
       setCookie("bucket", this.bucket,365)
       setCookie("region", this.region,365)
+      this.$root.settings.prefix = this.prefix
+      this.$root.settings.keypair = this.keypair
+      this.$root.settings.region = this.region
+      this.$root.settings.bucket = this.bucket
       this.$bvModal.hide("settings")
     },
     testfn: function(){
@@ -129,13 +142,6 @@ export default {
     async test(){
       console.log("test")
       this.showTestWindow()
-      // try {
-      //   let data = await dirBucket(getCookie('bucket'))
-      //   console.log("Bucket",data)        
-      // } catch (error) {
-      //   console.log("Error",error)
-      // }
-
     }
   },
   computed:{
@@ -157,8 +163,14 @@ export default {
         this.loggedIn = false
     })
     this.prefix = getCookie("prefix") ? getCookie("prefix") : this.prefix
+    this.keypair = getCookie("keypair") ? getCookie("keypair") : this.prefix
     this.region = getCookie("region") ? getCookie("region") : this.region
     this.bucket = getCookie("bucket") ? getCookie("bucket") : this.bucket
+    if(! this.$root.settings) this.$root.settings = {}
+    this.$root.settings.prefix = this.prefix
+    this.$root.settings.keypair = this.keypair
+    this.$root.settings.region = this.region
+    this.$root.settings.bucket = this.bucket
   }
 }
 </script>

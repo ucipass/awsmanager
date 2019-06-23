@@ -1,0 +1,390 @@
+<template>
+  <div>
+    <b-modal v-model="showModal"  :id="id" class="text-center" size="lg" :title="title" >
+     <b-container fluid>
+    <!-- =================================================================== -->
+    <!-- ========================= STACK NAME ============================== -->
+    <!-- =================================================================== -->        <b-row class="mb-1">
+          <b-col cols="3">Stack Name
+            <font-awesome-icon icon="check"
+              v-b-tooltip title="Check if stack exists"
+              @click='checkStackName()'/>
+          </b-col>
+          <b-col>
+            <b-input v-model='stackName'></b-input>
+          </b-col>
+        </b-row>
+    <!-- =================================================================== -->
+    <!-- ========================= CANNED MODE ============================= -->
+    <!-- =================================================================== -->
+        <b-row v-if='!switchFile' class="mb-1">
+          <b-col cols="3">
+            Template  
+            <font-awesome-icon icon="code"
+              v-b-tooltip title="Show code"
+              @click='$bvModal.show("ModalTemplateCanned")'/>&nbsp;
+            <font-awesome-icon icon="sync"
+              v-b-tooltip title="Refresh Template"
+              v-if='template!=""'
+              @click='loadCannedTemplate()'/>&nbsp;
+            <font-awesome-icon icon="times"
+              v-b-tooltip title="Reset"
+              v-if='template!=""'
+              @click='reset()'/>&nbsp;
+          </b-col>
+          <b-col>
+            <b-form-select 
+              v-model="selectedTemplate"
+              :options="optionTemplate"
+              @change="loadCannedTemplate()">
+            </b-form-select> 
+          </b-col>
+        </b-row>
+    <!-- =================================================================== -->
+    <!-- ========================= FILE MODE =============================== -->
+    <!-- =================================================================== -->
+        <b-row v-if='switchFile' class="mb-1">
+          <b-col cols="3">
+            <label>Load File&nbsp;</label>
+            <input type="file" 
+              :value="file"
+              @change='loadFile'
+              ref="fileInput"
+              style="display: none;">
+            <font-awesome-icon icon="file"
+              title="Open File" 
+              v-b-tooltip.hover.top
+              @click='$refs.fileInput.click()'/>&nbsp;
+            <font-awesome-icon icon="code"
+              title="Show Code"
+              v-if='this.template!=""'
+              v-b-tooltip.hover.top
+              @click='$bvModal.show("ModalTemplateFile")'/>&nbsp;
+            <font-awesome-icon icon="times"
+              title="Reset"
+              v-if='template!=""'
+              v-b-tooltip.hover.top
+              @click='reset()'/>&nbsp;
+          </b-col>
+          <b-col>
+            <b-input 
+              v-model='currentFileName'
+              readonly
+              placeholder="Select a cloudformation template file..."
+              @click='$refs.fileInput.click()'>
+              </b-input>
+          </b-col>
+        </b-row>
+    <!-- =================================================================== -->
+    <!-- ========================= EVENTS ================================== -->
+    <!-- =================================================================== -->
+        <b-row class="mb-1">
+          <b-col cols="3">
+            Events&nbsp;
+            <font-awesome-icon icon="sync" @click="refreshEvents()" v-b-tooltip title="Pull event logs" /></b-col>
+          <b-col>
+            <b-textarea :value=events readonly></b-textarea>
+          </b-col>
+        </b-row>
+    <!-- =================================================================== -->
+    <!-- ========================= OUTPUT ================================== -->
+    <!-- =================================================================== -->
+        <b-row class="mb-1">
+          <b-col cols="3">Output</b-col>
+          <b-col>
+            <b-textarea :value=output readonly></b-textarea>
+          </b-col>
+        </b-row>
+      </b-container>
+    <!-- =================================================================== -->
+    <!-- ========================= MODAL FOOTER ============================ -->
+    <!-- =================================================================== -->
+      <div slot="modal-footer" class="w-100">
+        <p v-if='false' class="float-left text-danger">Status:</p>
+        <p v-if='false' class="float-left"></p>
+        <b-form-checkbox v-model="switchFile" name="check-button" class='d-inline' switch>
+          File
+        </b-form-checkbox>
+        <b-button-group class="float-right">
+          <b-button
+            v-b-tooltip title="Create CloudFormation stack based on template"
+            variant="outline-primary" 
+            size="sm" 
+            class="float-right" 
+            @click="create()">Create
+            <b-spinner v-if='stateCreating' small></b-spinner>
+          </b-button>
+          <b-button 
+            v-b-tooltip title="Update CloudFormation stack based on template"
+            variant="outline-primary"
+            size="sm"
+            class="float-right"
+            @click="update()">Update
+            <b-spinner v-if='stateUpdating' small></b-spinner>
+            </b-button>
+          <b-button
+            variant="outline-primary"
+            size="sm"
+            class="float-right"
+            @click="deleteC()">Delete
+            <b-spinner v-if='stateDeleting' small></b-spinner>
+          </b-button>
+          <b-button variant="outline-primary" size="sm" class="float-right" @click="showModal=false">Close</b-button>          
+        </b-button-group>
+      </div>
+    </b-modal>
+    <!-- =================================================================== -->
+    <!-- ========================= MODAL HELPERS =========================== -->
+    <!-- =================================================================== -->
+    <b-modal id="ModalTemplateFile" :title='"Cloudformation Template: "+currentFileName' size="lg">
+      <b-row class='m-0'>
+        <b-textarea v-model=currentFileText rows=15 spellcheck="false" style="font-family: monospace;" ></b-textarea>
+      </b-row>
+    </b-modal>
+    <b-modal id="ModalTemplateCanned" :title='"Cloudformation Template: "' size="lg">
+      <b-row class='m-0'>
+        <b-textarea v-model=currentCannedText rows=15 spellcheck="false" style="font-family: monospace;" ></b-textarea>
+      </b-row>
+    </b-modal>
+    <b-modal id="ModalDiagram" title="Cloudformation Diagram" size="lg">
+      <b-row class="justify-content-md-center"><img src="/asav.png" style="width: 400px; height: 264px;"></b-row>
+    </b-modal>
+  </div>
+</template>
+
+<script>
+import asav from '!raw-loader!@/assets/asav.yaml' 
+import vpc from '!raw-loader!@/assets/vpc.yaml'
+import vpc2 from '!raw-loader!@/assets/vpc2.yaml'
+
+import { getStacks, createStack, updateStack, deleteStack, cFormEvents } from '@/components/cloudform.js'
+import {  getCookie } from "./cookies2"
+import { readFile } from "./file"
+import { setInterval, clearTimeout } from 'timers';
+const yaml = require('js-yaml');
+
+export default {
+  name: 'ModalTest',
+  props: {
+    json: {
+      type: Object
+    },
+    title: {
+      default: "Login",
+      type: String
+    },
+    id: {
+      default: "ModalTestId",
+      type: String
+    }
+  },
+  data: function(){
+    return{
+      refreshTime: 2000,              // Refresh interval for events
+      stateCreating: false,
+      stateUpdating: false,
+      stateDeleting: false,
+      stackName: "",
+      events: "",
+      output: "",
+      currentCannedText: "",
+      currentFileText: "",
+      currentFileName: "",
+      showModal: false,
+      file: null,
+      files: [],
+      filesText: "",
+      accessKeyId: '',
+      secretAccessKey: '',
+      AWS: null,
+      selectedFile: 0,
+      cannedTemplates: {
+        asav: asav,
+        vpc: vpc,
+        vpc2: vpc2
+      },
+      selectedTemplate: null,
+      optionTemplate: [
+        { value: null, text: 'Please select a canned CloudFormation template'},
+        { value: "asav", text: 'ASAv with a single segment'},
+        { value: "vpc", text: 'Single VPC Test'},
+        { value: "vpc2", text: 'Single VPC 4 Subnets'}
+      ],
+      optionFile: [
+        { value: null, text: 'No file loaded yet...' }
+      ],
+      pressed: false,
+      switchFile: false
+    }
+  },
+  computed:{
+    template:  function(){
+      if (this.switchFile){
+        return this.currentFileText
+      }
+      else{
+        console.log(this.selectedTemplate)
+        return this.currentCannedText
+      }
+    }
+  },    
+  methods:{
+    awstest(){
+      console.log(this.template)
+    },
+    async checkStackName(){
+      let stacks = await getStacks()
+      console.log("STACKS",stacks)
+      for (let i= 0 ; i< stacks.length; i++) {
+        let cname = stacks[i].StackName
+        if( this.stackName == cname) {
+          this.events = "Stack already exists"
+          return true
+        }
+      }
+      this.events = "Stack name not found"
+    },
+    refreshEvents: async function () {
+      this.events = await cFormEvents(this.stackName).catch((err)=> err.toString() )
+    },
+    reset: function () {
+      this.currentFileName = ""
+      this.selectedTemplate = null
+      this.currentCannedText = ""
+      this.events = ""
+      this.output = ""
+    },
+    create: function(){
+      console.log("Create")
+      // let json = yaml.safeLoad(template);
+      // json.Parameters.VpcCIDR.Default= this.VpcCIDR
+      // json.Parameters.PrivateSubnet1CIDR.Default= this.PrivateSubnet1CIDR
+      // json.Parameters.PublicSubnet1CIDR.Default= this.PublicSubnet1CIDR
+      // console.log(json)
+      // //let newyaml = yaml.safeDump(json)
+      // let jsontext = JSON.stringify(json, null, 2);
+      this.output = ""
+      this.events = ""
+      this.stateCreating = true
+      let refresh = setInterval(() => { this.refreshEvents(); console.log("Refresh events...") }, this.refreshTime);
+      createStack(this.stackName,this.template)
+      .then((output)=>{
+        console.log("CFORM CREATE SUCCESS",output);
+        clearTimeout(refresh)
+        this.output = output
+        this.stateCreating = false
+      })
+      .catch((err)=>{
+        console.log("CFORM CREATE ERROR",err);
+        clearTimeout(refresh)
+        this.output = err.toString()
+        this.stateCreating = false
+      })
+    },
+    update: function(){
+      console.log("Create")
+      this.output = ""
+      this.events = ""
+      this.stateUpdating = true
+      let refresh = setInterval(() => { this.refreshEvents(); console.log("Refresh events...") }, this.refreshTime);
+      updateStack(this.stackName,this.template)
+      .then((output)=>{
+        console.log("CFORM UPDATE SUCCESS",output);
+        clearTimeout(refresh)
+        this.output = output
+        this.stateUpdating = false
+      })
+      .catch((err)=>{
+        console.log("CFORM UPDATE ERROR",err);
+        clearTimeout(refresh)
+        this.output = err.toString()
+        this.stateUpdating = false
+      })
+    },
+    deleteC: function(){
+      console.log("Delete")
+      this.output = ""
+      this.events = ""
+      this.stateDeleting = true
+      let refresh = setInterval(() => { this.refreshEvents(); console.log("Refresh events...") }, this.refreshTime);
+      deleteStack(this.stackName)
+      .then((output)=>{
+        console.log("CFORM DELETE SUCCESS",output);
+        clearTimeout(refresh)
+        this.output = output
+        this.stateDeleting = false
+      })
+      .catch((err)=>{
+        console.log("CFORM DELETE ERROR",err);
+        clearTimeout(refresh)
+        this.output = err.toString()
+        this.stateDeleting = false
+      })
+    },
+    pickFile: async function(){
+      console.log(12)
+      let index = this.selectedFile
+      console.log("index",index)
+      let file = this.files[index];
+      console.log("file",file)
+      this.currentFileText = await readFile(file).catch(()=> "File read error") 
+    },
+    loadCannedTemplate: function(){
+      let text =this.cannedTemplates[this.selectedTemplate]
+      try {
+        let json = yaml.safeLoad(text);
+        json.Parameters.EnvironmentName = {}
+        json.Parameters.EnvironmentName.Description = 'AAn environment name that will be prefixed to resource names'
+        json.Parameters.EnvironmentName.Type = "String"
+        json.Parameters.EnvironmentName.Default = this.stackName
+        json.Parameters.KeyPairName = {}
+        json.Parameters.KeyPairName.Description = "Default EC2 Key Pair"
+        json.Parameters.KeyPairName.Type = "AWS::EC2::KeyPair::KeyName"
+        json.Parameters.KeyPairName.Default = this.$root.settings.keypair
+        this.currentCannedText = yaml.safeDump(json)        
+      } catch (error) {
+        this.events = error.toString()
+      }
+
+    },
+    loadFile: async function(event){
+      console.log("NAMNE:",file)
+      this.files = event.target.files;
+      let file = this.files[0];
+      console.log("NAMNE:",file)
+      this.currentFileName = file.name
+      this.currentFileText = await readFile(file).catch(()=> "File read error") 
+    },
+    loadFiles: async function(event){
+      this.files = event.target.files;
+      this.filesText = ""
+      this.optionFile = []
+      for (let index = 0; index < this.files.length; index++) {
+        this.selected = 0;
+        let current = this.files[index].name
+        this.filesText += current + "\n"         
+        this.optionFile.push( { value: index, text: current }   )
+      }
+      let file = this.files[0];
+      this.currentFileText = await readFile(file).catch(()=> "File read error") 
+    },
+    setJson (payload) {
+      this.json = payload
+    },    
+    show: function(){
+      this.loginError = ""
+      this.$bvModal.show(this.id)
+    },
+    hide: function(){
+      this.$bvModal.hide(this.id)
+    }
+  },
+  mounted: function () {
+    this.stackName = getCookie('prefix')
+  }
+}
+</script>
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+
+<style scoped>
+</style>

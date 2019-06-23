@@ -1,5 +1,5 @@
 Description:
-  ASAv 9.10 Instance
+  VPC Test
 
 Parameters:
 
@@ -33,10 +33,10 @@ Parameters:
     Type: String
     Default: 172.30.22.0/24
 
-  myKeyPair: 
-    Description: Amazon EC2 Key Pair
-    Type: "AWS::EC2::KeyPair::KeyName"
-    Default: AA-TEST
+  # myKeyPair: 
+  #   Description: Amazon EC2 Key Pair
+  #   Type: "AWS::EC2::KeyPair::KeyName"
+  #   Default: AA-TEST
 
   InstanceType:
     Description: EC2 instance type

@@ -56,14 +56,14 @@
         <b-textarea readonly rows=5 id='fileList' :value="filesText">
         </b-textarea>              
       </b-col>
-    </b-row>
+    </b-row> 
 
   </b-container>
 </template>
 
 <script>
 import template from '!raw-loader!@/assets/asav.yaml'
-import {createStack, deleteStack, stackOutput, dirBucket } from '@/components/cloudform.js'
+import {createStack, deleteStack, stackOutput } from '@/components/cloudform.js'
 import eventHub from '@/components/eventHub.js'
 const yaml = require('js-yaml');
 let getCookie = require("./cookies.js").getCookie
