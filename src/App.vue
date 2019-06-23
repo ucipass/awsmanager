@@ -2,6 +2,7 @@
   <div id="app">
     <NavBarMain/>
     <AwsUpload v-if='false' title="AWS Upload Files"/>
+    <Clock/>
 
   </div>
 </template>
@@ -9,14 +10,14 @@
 <script>
 import AwsUpload from './components/AwsUpload.vue'
 import NavBarMain from './components/NavBarMain.vue'
+import Clock from './components/Clock.vue'
 
 export default {
   name: 'app',
   components: {
-    AwsUpload,NavBarMain
+    AwsUpload,NavBarMain,Clock
   },
   mounted: function(){
-
   }
 
 }

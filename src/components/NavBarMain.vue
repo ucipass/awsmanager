@@ -150,10 +150,6 @@ export default {
     }
   },
   mounted: function () {
-    // this.$nextTick(() => {
-    //   this.$bvModal.show('modal-1')
-    // })
-    console.log(1)
     this.$root.$on('loginEvent', (event) => {
         console.log("loginEvent", event)
         this.loggedIn = event.loggedIn

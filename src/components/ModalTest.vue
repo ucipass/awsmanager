@@ -160,7 +160,6 @@ export default {
         return this.currentFileText
       }
       else{
-        console.log(this.selectedTemplate)
         return cannedTemplates[this.selectedTemplate]
       }
     }

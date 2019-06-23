@@ -1,6 +1,6 @@
 <template>
   <div>
-    <b-modal v-model="showModal"  :id="id" class="text-center" size="lg" :title="title" >
+    <b-modal v-model="showModal"  :id="id" class="text-center" size="xl" :title="title" >
      <b-container fluid>
     <!-- =================================================================== -->
     <!-- ========================= STACK NAME ============================== -->
@@ -23,6 +23,10 @@
             <font-awesome-icon icon="code"
               v-b-tooltip title="Show code"
               @click='$bvModal.show("ModalTemplateCanned")'/>&nbsp;
+            <font-awesome-icon icon="network-wired"
+              v-b-tooltip title="Show Diagram"
+              v-if='template!=""'
+              @click='$bvModal.show("ModalDiagram")'/>&nbsp;
             <font-awesome-icon icon="sync"
               v-b-tooltip title="Refresh Template"
               v-if='template!=""'
@@ -83,7 +87,7 @@
             Events&nbsp;
             <font-awesome-icon icon="sync" @click="refreshEvents()" v-b-tooltip title="Pull event logs" /></b-col>
           <b-col>
-            <b-textarea :value=events readonly></b-textarea>
+            <b-textarea :value=events rows=5 readonly></b-textarea>
           </b-col>
         </b-row>
     <!-- =================================================================== -->
@@ -92,7 +96,7 @@
         <b-row class="mb-1">
           <b-col cols="3">Output</b-col>
           <b-col>
-            <b-textarea :value=output readonly></b-textarea>
+            <b-textarea :value=output rows=5 readonly></b-textarea>
           </b-col>
         </b-row>
       </b-container>
@@ -223,7 +227,6 @@ export default {
         return this.currentFileText
       }
       else{
-        console.log(this.selectedTemplate)
         return this.currentCannedText
       }
     }
