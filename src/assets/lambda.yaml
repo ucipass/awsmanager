@@ -1,0 +1,138 @@
+Description:
+  Lambda Test
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+    Default: AA-API
+
+  apiGatewayStageName:
+    Type: "String"
+    AllowedPattern: "^[a-z0-9]+$"
+    Default: "call"
+
+Resources:
+
+  apiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: 
+        Fn::Sub: ${EnvironmentName}_APIGW
+      Description: API used for ${EnvironmentName}
+
+  apiGatewayRootMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub:
+            - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations"
+            - 
+              lambdaArn: 
+                Fn::GetAtt: "lambdaFunction.Arn"
+      RestApiId: 
+        Ref: apiGateway
+      ResourceId:
+        Fn::GetAtt:
+          - apiGateway
+          - RootResourceId
+
+  apiGatewayDeployment:
+    Type: 'AWS::ApiGateway::Deployment'
+    DependsOn:
+      - "apiGatewayRootMethod"
+    Properties:
+      RestApiId: 
+        Ref: apiGateway
+      StageName:
+        Ref: apiGatewayStageName
+
+  lambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName:
+        Fn::Sub: ${EnvironmentName}_BucketList
+      Handler: "index.handler"
+      # Role: "arn:aws:iam::699356685230:role/AA-Lambda"
+      Role: 
+        Fn::GetAtt:
+          - LambdaExecutionRole
+          - Arn
+      Code: 
+        ZipFile: |
+          def handler(event,context):
+            import json
+            import boto3
+            #print('Loading function')
+            s3 = boto3.client('s3')
+            try:
+                response = s3.list_buckets()
+                buckets = [bucket['Name'] for bucket in response['Buckets']]
+            except Exception as e:
+                print(e)
+                print('Error ')
+                raise e
+            return {
+              'body': json.dumps(list(buckets)),
+              'headers': {
+                'Content-Type': 'text/plain'
+              },
+              'statusCode': 200
+            }
+      Runtime: "python2.7"
+      Timeout: 25
+      TracingConfig:
+        Mode: "Active"
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${EnvironmentName}_LambdaExecutionRole
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+        - 
+          Effect: Allow
+          Principal: 
+            Service: 
+              - "lambda.amazonaws.com"
+          Action: 
+            - "sts:AssumeRole"
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AWSLambdaFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+
+  lambdaApiGatewayInvoke:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: 
+        Fn::GetAtt: "lambdaFunction.Arn"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: 
+        Fn::Sub: "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*/"
+
+  lambdaLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: 
+        Fn::Sub: "/aws/lambda/${EnvironmentName}"
+      RetentionInDays: 90
+
+
+Outputs:
+  apiGatewayInvokeURL:
+    Value: 
+      Fn::Sub: "https://${apiGateway}.execute-api.${AWS::Region}.amazonaws.com/${apiGatewayStageName}"
+
+  lambdaArn:
+    Value: 
+      Fn::GetAtt: "lambdaFunction.Arn"
+

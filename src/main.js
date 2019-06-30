@@ -5,11 +5,12 @@ import './plugins/bootstrap-vue'
 import App from './App.vue'
 
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faNetworkWired,faUserSecret, faFile, faSync, faImage, faGlasses, faLink, faFileCode, faCode, faTimes, faCheck } from '@fortawesome/free-solid-svg-icons'
+import { faFilePrescription,faCloudDownloadAlt,faAlignJustify,faInfoCircle,faNetworkWired,faUserSecret, faFile, faSync, faImage, faGlasses, faLink, faFileCode, faCode, faTimes, faCheck } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
  
 library.add(faUserSecret)
 library.add(faFile)
+library.add(faFilePrescription)
 library.add(faSync)
 library.add(faImage)
 library.add(faGlasses)
@@ -19,6 +20,10 @@ library.add(faCode)
 library.add(faTimes)
 library.add(faCheck)
 library.add(faNetworkWired)
+library.add(faInfoCircle)
+library.add(faAlignJustify)
+library.add(faCloudDownloadAlt)
+
  
 Vue.component('font-awesome-icon', FontAwesomeIcon)
 

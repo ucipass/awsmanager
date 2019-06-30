@@ -8,7 +8,7 @@
           </b-row>
           <b-row align-h="center">
             <b-col class="col-4 text-right"><label for="secretAccessKey" class="m-0" >secretAccessKey</label></b-col>
-            <b-col><b-input v-model='secretAccessKey' id='secretAccessKey'></b-input></b-col>
+            <b-col><b-input type="password" v-model='secretAccessKey' id='secretAccessKey'></b-input></b-col>
           </b-row>
         </b-container>
         <div slot="modal-footer" class="w-100">
@@ -21,6 +21,9 @@
 </template>
 
 <script>
+import { getCookie, setCookie } from '@/components/cookies2.js'
+import { describeRegions } from '@/components/cloudform.js'
+
 export default {
   name: 'ModalLogin',
   props: {
@@ -43,8 +46,6 @@ export default {
   },
   methods:{
     show: function(){
-      console.log("accessKeyId",getCookie("accessKeyId"))
-      console.log("secretAccessKey",getCookie("secretAccessKey"))
       this.accessKeyId = getCookie("accessKeyId")
       this.secretAccessKey = getCookie("secretAccessKey")
       this.loginError = ""
@@ -53,39 +54,27 @@ export default {
     hide: function(){
       this.$bvModal.hide(this.id)
     },
-    login: function(){
+    login: async function(){
       this.loginError = ""
-      let region = getCookie('region')
-      let _this = this
-
-      var AWS = require('aws-sdk');
-      AWS.config.update({
-        region: region,
-        credentials: new AWS.Credentials(this.accessKeyId, this.secretAccessKey)
-      });
-
-      var cloudformation = new AWS.CloudFormation(); 
-      var params = {
-        // NextToken: 'STRING_VALUE',
-        // StackName: 'STRING_VALUE'
-      };
-      cloudformation.describeStacks(params, function(err, data) {
-        if (err) {
-          console.log("ERROR",err.toString()); // an error occurred
-          _this.loginError = err.toString();
-          // console.log("STACK", err.stack);
-        }
-        else{
-          _this.loginError = "Login Successful"
-          _this.loggedIn = true
-          _this.$root.$emit('loginEvent', { loggedIn: _this.loggedIn} )
-          setCookie("accessKeyId", _this.accessKeyId,365)
-          setCookie("secretAccessKey", _this.secretAccessKey,365)
-          console.log(data);           // successful response
-          _this.hide();
-        }     
-      });
-
+      try {
+        setCookie("accessKeyId",this.accessKeyId, 7)
+        setCookie("secretAccessKey", this.secretAccessKey, 7)
+        let regions = await describeRegions()
+        this.$root.settings.accessKeyId = this.accessKeyId
+        this.$root.settings.secretAccessKey = this.secretAccessKey
+        this.$root.settings.regions = regions.map( (item)=> item.RegionName )
+        this.$root.settings.regionOptions = regions.map( (item)=> {
+          let json = { value: item.RegionName, text: item.RegionName }
+          return json;
+        })
+        this.loggedIn = true
+        this.$root.$emit('loginEvent')
+        this.hide()
+      } catch (error) {
+        this.loginError = error.toString()
+        this.loggedIn = false
+        this.$root.$emit('logoutEvent')
+      }
     }
   },
   mounted: function () {
@@ -93,33 +82,13 @@ export default {
         // console.log("Generator", event)
         this.show()
     })
-    this.$root.$on('logoutEvent', () => {
-        // console.log("Generator", event)
-        this.loggedIn = false
-    })
+    if(! this.$root.settings) this.$root.settings = {}
+    this.accessKeyId = getCookie("accessKeyId")
+    this.secretAccessKey = getCookie("secretAccessKey")
+    if ( this.accessKeyId && this.secretAccessKey) this.login()
   }
 }
 
-function setCookie(name, value, days) {
-    var expires = "";
-    if (days) {
-        var date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/";
-}
-
-function getCookie(name) {
-    var nameEQ = name + "=";
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

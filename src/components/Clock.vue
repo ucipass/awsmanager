@@ -31,6 +31,8 @@
 </template>
 
 <script>
+import { setTimeout } from 'timers';
+import { Promise } from 'q';
 
 export default {
   name: "Clock",
@@ -53,7 +55,7 @@ export default {
     }
   },
   methods:{
-    clockready() {
+    async clockready() {
       var props = "transform WebkitTransform MozTransform OTransform msTransform".split(" ");
       var el = document.createElement("div");
 
@@ -64,18 +66,26 @@ export default {
         }
       }
 
+      let initialTransition = 1 
       let date = new Date()
+      date.setSeconds(date.getSeconds()+initialTransition)
       let hour = date.getHours() % 12
       let minute = date.getMinutes()
       let second = date.getSeconds()
       let hourAngle = (360 / 12) * hour + (360 / (12 * 60)) * minute
       let minAngle = (360 / 60) * minute +  (360/60) * ( second/60)
-      let secAngle = (360 / 60) * (second+1) // +1 to compensate when the transition be
+      let secAngle = (360 / 60) * (second) 
+      this.secTransition = initialTransition
+      this.minTransition = initialTransition
+      this.hourTransition = initialTransition
       this.hourDegree = hourAngle
       this.minDegree = minAngle
       this.secDegree = secAngle
+      await new Promise(resolve => setTimeout(resolve, initialTransition*1000))
+      this.secTransition = 60 - second
+      this.secDegree = 360
 
-      setInterval(()=>{
+      setInterval( async ()=>{
         let date = new Date()
         let hour = date.getHours() % 12
         let minute = date.getMinutes()
@@ -84,14 +94,9 @@ export default {
         if ( second == 0) {
           this.secTransition = 0
           this.secDegree = 0
-          setTimeout(() => {
-            this.secTransition = 60
-            this.secDegree = 360  
-          }, 100);  
-        }
-        else{
-          this.secTransition = 60 - second
-          this.secDegree = 360
+          await new Promise(resolve => setTimeout(resolve, 100))
+          this.secTransition = 59.9
+          this.secDegree = 360  
         }
 
         if ( minute == 0  && second == 0) {

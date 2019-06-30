@@ -1,40 +1,75 @@
 <template>
   <div>
-    <b-modal v-model="showModal"  :id="id" class="text-center" size="xl" :title="title" >
-     <b-container fluid>
-    <!-- =================================================================== -->
-    <!-- ========================= STACK NAME ============================== -->
-    <!-- =================================================================== -->        <b-row class="mb-1">
-          <b-col cols="3">Stack Name
-            <font-awesome-icon icon="check"
-              v-b-tooltip title="Check if stack exists"
+    <b-modal :id="id" 
+      v-model="showModal"  
+      class="text-center" 
+      size="xl" 
+      :title="title" >
+     <b-container fluid class='p-0'>
+        <!-- =================================================================== -->
+        <!-- ========================= STACK NAME ============================== -->
+        <!-- =================================================================== -->        
+        <b-row class="mb-1">
+          <b-col xl='3' lg='3'>
+            Stack Name&nbsp;
+            <font-awesome-icon icon="file-prescription"
+              v-b-tooltip title="Select an existing canned template"
+              class="float-right m-1"
+              @click='checkStackName()'/>
+            <font-awesome-icon icon="file"
+              v-b-tooltip title="Load a local template file"
+              class="float-right m-1"
+              @click='checkStackName()'/>
+            <font-awesome-icon icon="cloud-download-alt"
+              v-b-tooltip title="Download and existing AWS stack"
+              class="float-right m-1"
               @click='checkStackName()'/>
           </b-col>
           <b-col>
             <b-input v-model='stackName'></b-input>
           </b-col>
         </b-row>
-    <!-- =================================================================== -->
-    <!-- ========================= CANNED MODE ============================= -->
-    <!-- =================================================================== -->
-        <b-row v-if='!switchFile' class="mb-1">
-          <b-col cols="3">
+        <!-- =================================================================== -->
+        <!-- ========================= SOURCE SELECT ============================== -->
+        <!-- =================================================================== -->        
+        <b-row class="mb-1">
+          <b-col xl='3' lg='3'>
+            Select Source&nbsp;
+          </b-col>
+          <b-col>
+            <b-form-select 
+              v-model="sourceSelected"
+              :options="sourceOptions"
+              @change="loadSourceSelected()">
+            </b-form-select> 
+          </b-col>
+        </b-row>
+        <!-- =================================================================== -->
+        <!-- ========================= CANNED MODE ============================= -->
+        <!-- =================================================================== -->
+        <b-row v-if='sourceSelected=="canned"' class="mb-1">
+          <b-col xl='3' lg='3'>
             Template  
             <font-awesome-icon icon="code"
               v-b-tooltip title="Show code"
-              @click='$bvModal.show("ModalTemplateCanned")'/>&nbsp;
+              class="float-right m-1"
+              v-if='template!=""'
+              @click='$bvModal.show("ModalTemplateCanned")'/>
+            <font-awesome-icon icon="align-justify"
+              v-b-tooltip title="Parameters"
+              class="float-right m-1"
+              v-if='template!=""'
+              @click='$bvModal.show("ModalTemplateCanned")'/>
             <font-awesome-icon icon="network-wired"
               v-b-tooltip title="Show Diagram"
+              class="float-right m-1"
               v-if='template!=""'
-              @click='$bvModal.show("ModalDiagram")'/>&nbsp;
+              @click='$bvModal.show("ModalDiagram")'/>
             <font-awesome-icon icon="sync"
               v-b-tooltip title="Refresh Template"
+              class="float-right m-1"
               v-if='template!=""'
-              @click='loadCannedTemplate()'/>&nbsp;
-            <font-awesome-icon icon="times"
-              v-b-tooltip title="Reset"
-              v-if='template!=""'
-              @click='reset()'/>&nbsp;
+              @click='loadCannedTemplate()'/>
           </b-col>
           <b-col>
             <b-form-select 
@@ -44,11 +79,27 @@
             </b-form-select> 
           </b-col>
         </b-row>
-    <!-- =================================================================== -->
-    <!-- ========================= FILE MODE =============================== -->
-    <!-- =================================================================== -->
-        <b-row v-if='switchFile' class="mb-1">
-          <b-col cols="3">
+        <!-- =================================================================== -->
+        <!-- ========================= DOWNLOAD MODE +========================== -->
+        <!-- =================================================================== -->
+        <b-row v-if='sourceSelected=="aws"' class="mb-1">
+          <b-col xl='3' lg='3'>
+            <label>AWS Existing Stacks&nbsp;</label>
+          </b-col>
+          <b-col>
+            <b-input 
+              v-model='currentFileName'
+              readonly
+              placeholder="Select a cloudformation template file..."
+              @click='$refs.fileInput.click()'>
+              </b-input>
+          </b-col>
+        </b-row>
+        <!-- =================================================================== -->
+        <!-- ========================= FILE MODE =============================== -->
+        <!-- =================================================================== -->
+        <b-row v-if='sourceSelected=="file"' class="mb-1">
+          <b-col xl='3' lg='3'>
             <label>Load File&nbsp;</label>
             <input type="file" 
               :value="file"
@@ -58,16 +109,19 @@
             <font-awesome-icon icon="file"
               title="Open File" 
               v-b-tooltip.hover.top
+              class="float-right m-1"
               @click='$refs.fileInput.click()'/>&nbsp;
             <font-awesome-icon icon="code"
               title="Show Code"
               v-if='this.template!=""'
               v-b-tooltip.hover.top
+              class="float-right m-1"
               @click='$bvModal.show("ModalTemplateFile")'/>&nbsp;
             <font-awesome-icon icon="times"
               title="Reset"
               v-if='template!=""'
               v-b-tooltip.hover.top
+              class="float-right m-1"
               @click='reset()'/>&nbsp;
           </b-col>
           <b-col>
@@ -79,36 +133,38 @@
               </b-input>
           </b-col>
         </b-row>
-    <!-- =================================================================== -->
-    <!-- ========================= EVENTS ================================== -->
-    <!-- =================================================================== -->
+        <!-- =================================================================== -->
+        <!-- ========================= EVENTS ================================== -->
+        <!-- =================================================================== -->
         <b-row class="mb-1">
-          <b-col cols="3">
+          <b-col xl='3' lg='3'>
             Events&nbsp;
-            <font-awesome-icon icon="sync" @click="refreshEvents()" v-b-tooltip title="Pull event logs" /></b-col>
+            <font-awesome-icon icon="sync" 
+              @click="refreshEvents()" 
+              class="float-right m-1"
+              v-if='stackName!=""'
+              v-b-tooltip title="Pull event logs" /></b-col>
           <b-col>
             <b-textarea :value=events rows=5 readonly></b-textarea>
           </b-col>
         </b-row>
-    <!-- =================================================================== -->
-    <!-- ========================= OUTPUT ================================== -->
-    <!-- =================================================================== -->
+        <!-- =================================================================== -->
+        <!-- ========================= OUTPUT ================================== -->
+        <!-- =================================================================== -->
         <b-row class="mb-1">
-          <b-col cols="3">Output</b-col>
+          <b-col xl='3' lg='3'>
+            Output
+          </b-col>
           <b-col>
             <b-textarea :value=output rows=5 readonly></b-textarea>
           </b-col>
         </b-row>
       </b-container>
-    <!-- =================================================================== -->
-    <!-- ========================= MODAL FOOTER ============================ -->
-    <!-- =================================================================== -->
+      <!-- =================================================================== -->
+      <!-- ========================= MODAL FOOTER ============================ -->
+      <!-- =================================================================== -->
       <div slot="modal-footer" class="w-100">
         <p v-if='false' class="float-left text-danger">Status:</p>
-        <p v-if='false' class="float-left"></p>
-        <b-form-checkbox v-model="switchFile" name="check-button" class='d-inline' switch>
-          File
-        </b-form-checkbox>
         <b-button-group class="float-right">
           <b-button
             v-b-tooltip title="Create CloudFormation stack based on template"
@@ -140,24 +196,38 @@
     <!-- =================================================================== -->
     <!-- ========================= MODAL HELPERS =========================== -->
     <!-- =================================================================== -->
-    <b-modal id="ModalTemplateFile" :title='"Cloudformation Template: "+currentFileName' size="lg">
+    <b-modal id="ModalTemplateFile" 
+      :title='"Cloudformation Template: "+currentFileName' size="lg">
       <b-row class='m-0'>
         <b-textarea v-model=currentFileText rows=15 spellcheck="false" style="font-family: monospace;" ></b-textarea>
       </b-row>
     </b-modal>
-    <b-modal id="ModalTemplateCanned" :title='"Cloudformation Template: "' size="lg">
+    <b-modal id="ModalTemplateCanned" 
+      :title='"Cloudformation Template: "' 
+      size="lg">
       <b-row class='m-0'>
         <b-textarea v-model=currentCannedText rows=15 spellcheck="false" style="font-family: monospace;" ></b-textarea>
       </b-row>
     </b-modal>
-    <b-modal id="ModalDiagram" title="Cloudformation Diagram" size="lg">
+    <b-modal id="ModalDiagram" 
+      title="Cloudformation Diagram" 
+      size="lg">
       <b-row class="justify-content-md-center"><img src="/asav.png" style="width: 400px; height: 264px;"></b-row>
     </b-modal>
+    <b-modal id="ModalStacks" 
+      title="Existing Stacks" 
+      size="lg">
+      <b-row class="justify-content-md-center">
+        {{this.stacks.toString()}}
+      </b-row>
+    </b-modal>
+    <b-modal id="modal-not-yet">This feature is not yet implemented!</b-modal>
   </div>
 </template>
 
 <script>
 import asav from '!raw-loader!@/assets/asav.yaml' 
+import lambda from '!raw-loader!@/assets/lambda.yaml' 
 import vpc from '!raw-loader!@/assets/vpc.yaml'
 import vpc2 from '!raw-loader!@/assets/vpc2.yaml'
 
@@ -201,18 +271,26 @@ export default {
       accessKeyId: '',
       secretAccessKey: '',
       AWS: null,
+      stacks: [],
       selectedFile: 0,
       cannedTemplates: {
         asav: asav,
         vpc: vpc,
-        vpc2: vpc2
+        vpc2: vpc2,
+        lambda: lambda
       },
-      selectedTemplate: null,
+      sourceSelected: "canned",
+      sourceOptions: [
+        { value: "canned", text: 'Template from built-in repository'},
+        { value: "aws", text: 'Template from live AWS stacks'},
+        { value: "file", text: 'Template from local file system'}
+      ],
+      selectedTemplate: "vpc",
       optionTemplate: [
-        { value: null, text: 'Please select a canned CloudFormation template'},
+        { value: "vpc", text: 'Single VPC - 1 subnet'},
+        { value: "vpc2", text: 'Single VPC 4 subnets'},
         { value: "asav", text: 'ASAv with a single segment'},
-        { value: "vpc", text: 'Single VPC Test'},
-        { value: "vpc2", text: 'Single VPC 4 Subnets'}
+        { value: "lambda", text: 'API Gateway running a Lambda function'}
       ],
       optionFile: [
         { value: null, text: 'No file loaded yet...' }
@@ -223,11 +301,17 @@ export default {
   },
   computed:{
     template:  function(){
-      if (this.switchFile){
+      if ( this.sourceSelected == 'canned'){
+        return this.currentCannedText
+      }
+      else if ( this.sourceSelected == 'file'){
         return this.currentFileText
       }
-      else{
-        return this.currentCannedText
+      else if ( this.sourceSelected == 'aws'){
+        return ""
+      }
+      else {
+        return ""
       }
     }
   },    
@@ -235,8 +319,13 @@ export default {
     awstest(){
       console.log(this.template)
     },
+    async loadSourceSelected(){
+      console.log("LOAD SOURCE:", this.sourceSelected)
+    },
     async checkStackName(){
       let stacks = await getStacks()
+      this.stacks = stacks
+      this.$root.$bvModal.show("ModalStacks")
       console.log("STACKS",stacks)
       for (let i= 0 ; i< stacks.length; i++) {
         let cname = stacks[i].StackName
@@ -339,16 +428,17 @@ export default {
         json.Parameters.EnvironmentName = {}
         json.Parameters.EnvironmentName.Description = 'AAn environment name that will be prefixed to resource names'
         json.Parameters.EnvironmentName.Type = "String"
-        json.Parameters.EnvironmentName.Default = this.stackName
-        json.Parameters.KeyPairName = {}
-        json.Parameters.KeyPairName.Description = "Default EC2 Key Pair"
-        json.Parameters.KeyPairName.Type = "AWS::EC2::KeyPair::KeyName"
-        json.Parameters.KeyPairName.Default = this.$root.settings.keypair
-        this.currentCannedText = yaml.safeDump(json)        
+        json.Parameters.EnvironmentName.Default = this.stackName ? this.stackName : "NONAMESET"
+        if(json.Parameters.KeyPairName){
+          json.Parameters.KeyPairName.Description = "Default EC2 Key Pair"
+          json.Parameters.KeyPairName.Type = "AWS::EC2::KeyPair::KeyName"
+          json.Parameters.KeyPairName.Default = this.$root.settings.keypair ? this.$root.settings.keypair : "NOKEYSET"
+        }
+        this.currentCannedText = yaml.safeDump(json)   
       } catch (error) {
+        console.log("LOAD CANNED ERROR",error)
         this.events = error.toString()
       }
-
     },
     loadFile: async function(event){
       console.log("NAMNE:",file)
@@ -383,7 +473,12 @@ export default {
     }
   },
   mounted: function () {
-    this.stackName = getCookie('prefix')
+    this.$root.$on('bv::modal::show', (bvEvent, modalId) => {
+      if (modalId == this.id) { 
+        this.stackName = getCookie('prefix')
+        this.loadCannedTemplate()
+      }
+    })
   }
 }
 </script>

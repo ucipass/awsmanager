@@ -17,7 +17,8 @@ export async function createStack(stackName,template){
 
   var params = {
     TemplateBody: template,
-    StackName: stackName
+    StackName: stackName,
+    Capabilities: ['CAPABILITY_NAMED_IAM']
   };
   try {
     await cloudformation.createStack(params).promise()
@@ -130,6 +131,51 @@ export async function getStacks(){
     //   eventText += event.StackEvents[i]['ResourceType'] + " " + event.StackEvents[i]['ResourceStatus'] + " " + ResourceStatusReason +"\n"
     // }
     return response.Stacks  
+  } 
+  catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+export async function describeRegions(){
+  let getCookie = require("./cookies.js").getCookie
+  let accessKeyId = getCookie('accessKeyId')
+  let secretAccessKey = getCookie('secretAccessKey')
+  var AWS = require('aws-sdk');
+  AWS.config.update({
+    region: "us-east-1",
+    credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
+  });
+  try {
+    let ec2 = new AWS.EC2()
+    let response = await ec2.describeRegions().promise()
+    return response.Regions  
+  } 
+  catch (error) {
+    console.log(1,error)
+    return Promise.reject(error)
+  }
+}
+
+
+export async function describeKeyPairs(regionParam){
+  let getCookie = require("./cookies.js").getCookie
+  let region = regionParam ? regionParam : getCookie('region')
+  let accessKeyId = getCookie('accessKeyId')
+  let secretAccessKey = getCookie('secretAccessKey')
+  var AWS = require('aws-sdk');
+  AWS.config.update({
+    region: region,
+    credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
+  });
+  try {
+    let ec2 = new AWS.EC2()
+    let response = await ec2.describeKeyPairs().promise()
+    // for ( let i = 0 ; i < event.StackEvents.length ; i++){
+    //   let ResourceStatusReason = event.StackEvents[i]['ResourceStatusReason'] ? event.StackEvents[i]['ResourceStatusReason'] : ""
+    //   eventText += event.StackEvents[i]['ResourceType'] + " " + event.StackEvents[i]['ResourceStatus'] + " " + ResourceStatusReason +"\n"
+    // }
+    return response.KeyPairs  
   } 
   catch (error) {
     return Promise.reject(error)
