@@ -1,6 +1,6 @@
 <template>
   <div>
-    <b-modal :id="id" 
+    <b-modal :id="id"
       v-model="showModal"  
       class="text-center" 
       size="xl" 
@@ -10,7 +10,7 @@
         <!-- ========================= STACK NAME ============================== -->
         <!-- =================================================================== -->        
         <b-row class="mb-1">
-          <b-col xl='3' lg='3'>
+          <b-col xl='3' lg='3' md='3'>
             Stack Name&nbsp;
             <font-awesome-icon icon="file-prescription"
               v-b-tooltip title="Select an existing canned template"
@@ -33,7 +33,7 @@
         <!-- ========================= SOURCE SELECT ============================== -->
         <!-- =================================================================== -->        
         <b-row class="mb-1">
-          <b-col xl='3' lg='3'>
+          <b-col xl='3' lg='3' md='3'>
             Select Source&nbsp;
           </b-col>
           <b-col>
@@ -48,7 +48,7 @@
         <!-- ========================= CANNED MODE ============================= -->
         <!-- =================================================================== -->
         <b-row v-if='sourceSelected=="canned"' class="mb-1">
-          <b-col xl='3' lg='3'>
+          <b-col xl='3' lg='3' md='3'>
             Template  
             <font-awesome-icon icon="code"
               v-b-tooltip title="Show code"
@@ -65,11 +65,6 @@
               class="float-right m-1"
               v-if='template!=""'
               @click='$bvModal.show("ModalDiagram")'/>
-            <font-awesome-icon icon="sync"
-              v-b-tooltip title="Refresh Template"
-              class="float-right m-1"
-              v-if='template!=""'
-              @click='loadCannedTemplate()'/>
           </b-col>
           <b-col>
             <b-form-select 
@@ -83,7 +78,7 @@
         <!-- ========================= DOWNLOAD MODE +========================== -->
         <!-- =================================================================== -->
         <b-row v-if='sourceSelected=="aws"' class="mb-1">
-          <b-col xl='3' lg='3'>
+          <b-col xl='3' lg='3' md='3'>
             <label>AWS Existing Stacks&nbsp;</label>
           </b-col>
           <b-col>
@@ -99,7 +94,7 @@
         <!-- ========================= FILE MODE =============================== -->
         <!-- =================================================================== -->
         <b-row v-if='sourceSelected=="file"' class="mb-1">
-          <b-col xl='3' lg='3'>
+          <b-col xl='3' lg='3' md='3'>
             <label>Load File&nbsp;</label>
             <input type="file" 
               :value="file"
@@ -137,7 +132,7 @@
         <!-- ========================= EVENTS ================================== -->
         <!-- =================================================================== -->
         <b-row class="mb-1">
-          <b-col xl='3' lg='3'>
+          <b-col xl='3' lg='3' md='3'>
             Events&nbsp;
             <font-awesome-icon icon="sync" 
               @click="refreshEvents()" 
@@ -152,7 +147,7 @@
         <!-- ========================= OUTPUT ================================== -->
         <!-- =================================================================== -->
         <b-row class="mb-1">
-          <b-col xl='3' lg='3'>
+          <b-col xl='3' lg='3' md='3'>
             Output
           </b-col>
           <b-col>

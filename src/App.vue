@@ -31,4 +31,15 @@ export default {
   text-align: center;
   color: #2c3e50;
 }
+
+@media (min-width: 850px) {
+
+    .modal-dialog {
+      max-width: 800px; 
+    }
+
+}
+
+
+
 </style>
