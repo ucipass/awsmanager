@@ -82,12 +82,11 @@
             <label>AWS Existing Stacks&nbsp;</label>
           </b-col>
           <b-col>
-            <b-input 
-              v-model='currentFileName'
-              readonly
-              placeholder="Select a cloudformation template file..."
-              @click='$refs.fileInput.click()'>
-              </b-input>
+            <b-form-select 
+              v-model="awsTemplateSelected"
+              :options="awsTemplateOptions"
+              @change="loadAWSTemplate()">
+            </b-form-select> 
           </b-col>
         </b-row>
         <!-- =================================================================== -->
@@ -274,6 +273,10 @@ export default {
         vpc2: vpc2,
         lambda: lambda
       },
+      awsTemplateSelected: null,
+      awsTemplateOptions: [
+        { value: null, text: 'No AWS Templates found'}
+      ],
       sourceSelected: "canned",
       sourceOptions: [
         { value: "canned", text: 'Template from built-in repository'},
@@ -314,8 +317,29 @@ export default {
     awstest(){
       console.log(this.template)
     },
-    async loadSourceSelected(){
+    loadSourceSelected: async function(){
       console.log("LOAD SOURCE:", this.sourceSelected)
+      if (this.sourceSelected == "aws"){
+        let options = []
+        let stacks = await getStacks()
+        if (stacks.length > 0){
+          console.log(stacks)
+          stacks.forEach( stack => {options.push( {value: stack.StackName, text: stack.StackName} )});
+          this.awsTemplateSelected = stacks[0].StackName
+          this.stackName = stacks[0].StackName
+        }else{
+          console.log("No stacks found!")
+          options = [ { value: null, text: 'No AWS Templates found'} ]
+          this.awsTemplateSelected = null
+          this.stackName = ""
+        }
+        this.awsTemplateOptions = options
+      }
+
+    },
+    async loadAWSTemplate(){
+      let stacks = await getStacks()
+      console.log("STACKS",stacks)
     },
     async checkStackName(){
       let stacks = await getStacks()
