@@ -32,14 +32,12 @@ export default {
   color: #2c3e50;
 }
 
-@media (min-width: 850px) {
+@media only screen and (max-width: 992px) and (min-width: 850px) {
 
     .modal-dialog {
       max-width: 800px; 
     }
 
 }
-
-
 
 </style>
