@@ -2,7 +2,7 @@
   <div>
     <b-modal :id="id"
       v-model="showModal"  
-      class="text-center" 
+      class="text-center"
       size="xl" 
       :title="title" >
      <b-container fluid class='p-0'>
@@ -224,6 +224,7 @@ import asav from '!raw-loader!@/assets/asav.yaml'
 import lambda from '!raw-loader!@/assets/lambda.yaml' 
 import vpc from '!raw-loader!@/assets/vpc.yaml'
 import vpc2 from '!raw-loader!@/assets/vpc2.yaml'
+import vpcServerLinux from '!raw-loader!@/assets/vpcServerLinux.yaml'
 
 import { getStacks, createStack, updateStack, deleteStack, cFormEvents } from '@/components/cloudform.js'
 import {  getCookie } from "./cookies2"
@@ -271,6 +272,7 @@ export default {
         asav: asav,
         vpc: vpc,
         vpc2: vpc2,
+        vpcServerLinux,
         lambda: lambda
       },
       awsTemplateSelected: null,
@@ -288,7 +290,8 @@ export default {
         { value: "vpc", text: 'Single VPC - 1 subnet'},
         { value: "vpc2", text: 'Single VPC 4 subnets'},
         { value: "asav", text: 'ASAv with a single segment'},
-        { value: "lambda", text: 'API Gateway running a Lambda function'}
+        { value: "lambda", text: 'API Gateway running a Lambda function'},
+        { value: "vpcServerLinux", text: 'Single VPC, 4 subnets, 1 Linux'}
       ],
       optionFile: [
         { value: null, text: 'No file loaded yet...' }
