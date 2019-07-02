@@ -43,6 +43,7 @@ export default {
     return{
       prop: null,
       transformStyle: null,
+      clockReady: new Promise.resolve(), 
       hour: 0,
       minute: 0,
       second: 0,
@@ -55,7 +56,7 @@ export default {
     }
   },
   methods:{
-    async clockready() {
+    async clockStart() {
       var props = "transform WebkitTransform MozTransform OTransform msTransform".split(" ");
       var el = document.createElement("div");
 
@@ -66,65 +67,39 @@ export default {
         }
       }
 
-      let initialTransition = 1 
-      let date = new Date()
-      date.setSeconds(date.getSeconds()+initialTransition)
+      await this.clockReset(3)
+      setInterval(() => {
+        let date = new Date()
+        let second = date.getSeconds()
+        if (second == 0){
+          this.clockReset()
+        }
+      }, 600);
+    },
+    async clockReset(transitionTimeParam){
+      let additionalWait = 0.1 // Cannot be 0 to allow transition to happen
+      let initialTransition = transitionTimeParam ? transitionTimeParam : 0
+      let date = new Date() 
+      date.setSeconds(date.getSeconds()+initialTransition+additionalWait)
       let hour = date.getHours() % 12
       let minute = date.getMinutes()
       let second = date.getSeconds()
+      let msecond = date.getMilliseconds()
       let hourAngle = (360 / 12) * hour + (360 / (12 * 60)) * minute
       let minAngle = (360 / 60) * minute +  (360/60) * ( second/60)
-      let secAngle = (360 / 60) * (second) 
-      this.secTransition = initialTransition
-      this.minTransition = initialTransition
-      this.hourTransition = initialTransition
-      this.hourDegree = hourAngle
-      this.minDegree = minAngle
+      let secAngle = (360 / 60) * (second + msecond/1000) 
       this.secDegree = secAngle
-      await new Promise(resolve => setTimeout(resolve, initialTransition*1000))
-      this.secTransition = 60 - second
+      this.secTransition = initialTransition
+      this.minDegree = minAngle
+      this.minTransition = initialTransition
+      this.hourDegree = hourAngle
+      this.hourTransition = initialTransition
+      await new Promise(resolve => setTimeout(resolve, (initialTransition + additionalWait)*1000))
       this.secDegree = 360
-
-      setInterval( async ()=>{
-        let date = new Date()
-        let hour = date.getHours() % 12
-        let minute = date.getMinutes()
-        let second = date.getSeconds()
-
-        if ( second == 0) {
-          this.secTransition = 0
-          this.secDegree = 0
-          await new Promise(resolve => setTimeout(resolve, 100))
-          this.secTransition = 59.9
-          this.secDegree = 360  
-        }
-
-        if ( minute == 0  && second == 0) {
-          this.minTransition = 0
-          this.minDegree = 0
-          setTimeout(() => {
-            this.minTransition = 3600
-            this.minDegree = 360  
-          }, 100);  
-        }
-        else{
-          this.minTransition = (60 - minute) * 60
-          this.minDegree = 360
-        }
-
-        if ( hour == 0 && minute == 0  && second == 0) {
-          this.hourTransition = 0
-          this.hourDegree = 0
-          setTimeout(() => {
-            this.hourTransition = 3600 * 24
-            this.hourDegree = 360
-          }, 100);  
-        }
-        else{
-          this.hourTransition = (24 - hour) * 3600 * 24
-          this.hourDegree = 360
-        }
-      }, 1000);
+      this.secTransition = 60 - second
+      this.minDegree = 360
+      this.minTransition = (60 - minute) * 60
+      console.log()
     }
   },
   computed: {
@@ -149,7 +124,7 @@ export default {
     
   },
   mounted() {
-    this.clockready();
+    this.clockStart();
   }
 };
 </script>
