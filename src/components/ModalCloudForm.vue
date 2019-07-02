@@ -2,7 +2,7 @@
   <div>
     <b-modal :id="id"
       v-model="showModal"  
-      class="text-center" 
+      class="text-center"
       size="xl" 
       :title="title" >
      <b-container fluid class='p-0'>
@@ -12,21 +12,13 @@
         <b-row class="mb-1">
           <b-col xl='3' lg='3' md='3'>
             Stack Name&nbsp;
-            <font-awesome-icon icon="file-prescription"
-              v-b-tooltip title="Select an existing canned template"
+            <font-awesome-icon icon="sync"
+              v-b-tooltip title="Refresh stack information"
               class="float-right m-1"
-              @click='checkStackName()'/>
-            <font-awesome-icon icon="file"
-              v-b-tooltip title="Load a local template file"
-              class="float-right m-1"
-              @click='checkStackName()'/>
-            <font-awesome-icon icon="cloud-download-alt"
-              v-b-tooltip title="Download and existing AWS stack"
-              class="float-right m-1"
-              @click='checkStackName()'/>
+              @click='refreshStackName()'/>
           </b-col>
           <b-col>
-            <b-input v-model='stackName'></b-input>
+            <b-input v-model='stackName' @change='stackNameChangeEvent()'></b-input>
           </b-col>
         </b-row>
         <!-- =================================================================== -->
@@ -82,12 +74,11 @@
             <label>AWS Existing Stacks&nbsp;</label>
           </b-col>
           <b-col>
-            <b-input 
-              v-model='currentFileName'
-              readonly
-              placeholder="Select a cloudformation template file..."
-              @click='$refs.fileInput.click()'>
-              </b-input>
+            <b-form-select 
+              v-model="awsTemplateSelected"
+              :options="awsTemplateOptions"
+              @change="loadAWSTemplate()">
+            </b-form-select> 
           </b-col>
         </b-row>
         <!-- =================================================================== -->
@@ -148,7 +139,12 @@
         <!-- =================================================================== -->
         <b-row class="mb-1">
           <b-col xl='3' lg='3' md='3'>
-            Output
+            Output&nbsp;
+            <font-awesome-icon icon="sync" 
+              @click="refreshOutputs()" 
+              class="float-right m-1"
+              v-if='stackName!=""'
+              v-b-tooltip title="Pull Output values" />
           </b-col>
           <b-col>
             <b-textarea :value=output rows=5 readonly></b-textarea>
@@ -225,8 +221,9 @@ import asav from '!raw-loader!@/assets/asav.yaml'
 import lambda from '!raw-loader!@/assets/lambda.yaml' 
 import vpc from '!raw-loader!@/assets/vpc.yaml'
 import vpc2 from '!raw-loader!@/assets/vpc2.yaml'
+import vpcServerLinux from '!raw-loader!@/assets/vpcServerLinux.yaml'
 
-import { getStacks, createStack, updateStack, deleteStack, cFormEvents } from '@/components/cloudform.js'
+import { stackOutput, getStacks, createStack, updateStack, deleteStack, cFormEvents } from '@/components/cloudform.js'
 import {  getCookie } from "./cookies2"
 import { readFile } from "./file"
 import { setInterval, clearTimeout } from 'timers';
@@ -272,8 +269,13 @@ export default {
         asav: asav,
         vpc: vpc,
         vpc2: vpc2,
+        vpcServerLinux,
         lambda: lambda
       },
+      awsTemplateSelected: null,
+      awsTemplateOptions: [
+        { value: null, text: 'No AWS Templates found'}
+      ],
       sourceSelected: "canned",
       sourceOptions: [
         { value: "canned", text: 'Template from built-in repository'},
@@ -285,7 +287,8 @@ export default {
         { value: "vpc", text: 'Single VPC - 1 subnet'},
         { value: "vpc2", text: 'Single VPC 4 subnets'},
         { value: "asav", text: 'ASAv with a single segment'},
-        { value: "lambda", text: 'API Gateway running a Lambda function'}
+        { value: "lambda", text: 'API Gateway running a Lambda function'},
+        { value: "vpcServerLinux", text: 'Single VPC, 4 subnets, 1 Linux'}
       ],
       optionFile: [
         { value: null, text: 'No file loaded yet...' }
@@ -311,11 +314,43 @@ export default {
     }
   },    
   methods:{
-    awstest(){
-      console.log(this.template)
+    stackNameChangeEvent: function(){
+      this.output = ""
+      this.events = ""  
+      if(this.sourceSelected == "canned"){
+        this.loadCannedTemplate()
+      }
     },
-    async loadSourceSelected(){
+    loadSourceSelected: async function(){
       console.log("LOAD SOURCE:", this.sourceSelected)
+      if (this.sourceSelected == "aws"){
+        let options = []
+        let stacks = await getStacks()
+        if (stacks.length > 0){
+          console.log(stacks)
+          stacks.forEach( stack => {options.push( {value: stack.StackName, text: stack.StackName} )});
+          this.awsTemplateSelected = stacks[0].StackName
+          this.stackName = stacks[0].StackName
+        }else{
+          console.log("No stacks found!")
+          options = [ { value: null, text: 'No AWS Templates found'} ]
+          this.awsTemplateSelected = null
+          this.stackName = ""
+        }
+        this.awsTemplateOptions = options
+        this.loadAWSTemplate()
+      }
+
+    },
+    async loadAWSTemplate(){
+      let stacks = await getStacks()
+      console.log("Load AWS Templates!",stacks)
+      stacks.forEach(stack => {
+        if(stack.StackName == this.awsTemplateSelected){
+          this.stackName = stack.StackName
+          this.refreshStackName()
+        }
+      });
     },
     async checkStackName(){
       let stacks = await getStacks()
@@ -331,8 +366,16 @@ export default {
       }
       this.events = "Stack name not found"
     },
+    refreshStackName: async function () {
+      this.refreshEvents()
+      this.refreshOutputs()
+    },
     refreshEvents: async function () {
       this.events = await cFormEvents(this.stackName).catch((err)=> err.toString() )
+    },
+    refreshOutputs: async function () {
+      let output = await stackOutput(this.stackName).catch((err)=> err.toString() )
+      this.output = JSON.stringify(output)
     },
     reset: function () {
       this.currentFileName = ""

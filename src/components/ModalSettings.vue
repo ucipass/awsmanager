@@ -123,6 +123,7 @@ export default {
       }else{
         console.log("OLD KEY NOT FOUND! USING FIRST AVAILABLE!")
         this.keypair = AWSKeyNames[0]
+        this.$root.settings.keypair = this.keypair
       }
     },
     regionFill: async function(){
