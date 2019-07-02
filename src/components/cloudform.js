@@ -1,13 +1,12 @@
 
 //import eventHub from './eventHub'
 import {getCookie} from './cookies2'
+import AWS from 'aws-sdk';
 
 export async function createStack(stackName,template){
-  let getCookie = require("./cookies.js").getCookie
   let region = getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
-  var AWS = require('aws-sdk');
   AWS.config.update({
     region: region,
     credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
@@ -34,11 +33,9 @@ export async function createStack(stackName,template){
 }
 
 export async function updateStack(stackName,template){
-  let getCookie = require("./cookies.js").getCookie
   let region = getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
-  var AWS = require('aws-sdk');
   AWS.config.update({
     region: region,
     credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
@@ -67,7 +64,6 @@ export async function deleteStack(stackName){
   let region = getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
-  var AWS = require('aws-sdk');
   AWS.config.update({
     region: region,
     credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
@@ -89,11 +85,9 @@ export async function deleteStack(stackName){
 }
 
 export async function cFormEvents(stackName){
-  let getCookie = require("./cookies.js").getCookie
   let region = getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
-  var AWS = require('aws-sdk');
   AWS.config.update({
     region: region,
     credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
@@ -114,11 +108,9 @@ export async function cFormEvents(stackName){
 }
 
 export async function getStacks(){
-  let getCookie = require("./cookies.js").getCookie
   let region = getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
-  var AWS = require('aws-sdk');
   AWS.config.update({
     region: region,
     credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
@@ -138,10 +130,8 @@ export async function getStacks(){
 }
 
 export async function describeRegions(){
-  let getCookie = require("./cookies.js").getCookie
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
-  var AWS = require('aws-sdk');
   AWS.config.update({
     region: "us-east-1",
     credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
@@ -159,11 +149,9 @@ export async function describeRegions(){
 
 
 export async function describeKeyPairs(regionParam){
-  let getCookie = require("./cookies.js").getCookie
   let region = regionParam ? regionParam : getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
-  var AWS = require('aws-sdk');
   AWS.config.update({
     region: region,
     credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
@@ -183,11 +171,9 @@ export async function describeKeyPairs(regionParam){
 }
 
 export async function stackOutput(stackName){
-  let getCookie = require("./cookies.js").getCookie
   let region = getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
-  var AWS = require('aws-sdk');
   AWS.config.update({
     region: region,
     credentials: new AWS.Credentials(accessKeyId, secretAccessKey)
@@ -211,13 +197,11 @@ export async function stackOutput(stackName){
 
 export async function dirBucket(bucket){
   console.log("Test")
-  let getCookie = require("./cookies.js").getCookie
   let region = getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
   let secretAccessKey = getCookie('secretAccessKey')
   console.log("Test")
-      
-  var AWS = require('aws-sdk');
+
   AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, region: region});
   var s3 = new AWS.S3();
 
