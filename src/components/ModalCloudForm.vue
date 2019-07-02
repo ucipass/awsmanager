@@ -12,21 +12,13 @@
         <b-row class="mb-1">
           <b-col xl='3' lg='3' md='3'>
             Stack Name&nbsp;
-            <font-awesome-icon icon="file-prescription"
-              v-b-tooltip title="Select an existing canned template"
+            <font-awesome-icon icon="sync"
+              v-b-tooltip title="Refresh stack information"
               class="float-right m-1"
-              @click='checkStackName()'/>
-            <font-awesome-icon icon="file"
-              v-b-tooltip title="Load a local template file"
-              class="float-right m-1"
-              @click='checkStackName()'/>
-            <font-awesome-icon icon="cloud-download-alt"
-              v-b-tooltip title="Download and existing AWS stack"
-              class="float-right m-1"
-              @click='checkStackName()'/>
+              @click='refreshStackName()'/>
           </b-col>
           <b-col>
-            <b-input v-model='stackName'></b-input>
+            <b-input v-model='stackName' @change='stackNameChangeEvent()'></b-input>
           </b-col>
         </b-row>
         <!-- =================================================================== -->
@@ -147,7 +139,12 @@
         <!-- =================================================================== -->
         <b-row class="mb-1">
           <b-col xl='3' lg='3' md='3'>
-            Output
+            Output&nbsp;
+            <font-awesome-icon icon="sync" 
+              @click="refreshOutputs()" 
+              class="float-right m-1"
+              v-if='stackName!=""'
+              v-b-tooltip title="Pull Output values" />
           </b-col>
           <b-col>
             <b-textarea :value=output rows=5 readonly></b-textarea>
@@ -226,7 +223,7 @@ import vpc from '!raw-loader!@/assets/vpc.yaml'
 import vpc2 from '!raw-loader!@/assets/vpc2.yaml'
 import vpcServerLinux from '!raw-loader!@/assets/vpcServerLinux.yaml'
 
-import { getStacks, createStack, updateStack, deleteStack, cFormEvents } from '@/components/cloudform.js'
+import { stackOutput, getStacks, createStack, updateStack, deleteStack, cFormEvents } from '@/components/cloudform.js'
 import {  getCookie } from "./cookies2"
 import { readFile } from "./file"
 import { setInterval, clearTimeout } from 'timers';
@@ -317,8 +314,12 @@ export default {
     }
   },    
   methods:{
-    awstest(){
-      console.log(this.template)
+    stackNameChangeEvent: function(){
+      this.output = ""
+      this.events = ""  
+      if(this.sourceSelected == "canned"){
+        this.loadCannedTemplate()
+      }
     },
     loadSourceSelected: async function(){
       console.log("LOAD SOURCE:", this.sourceSelected)
@@ -337,12 +338,19 @@ export default {
           this.stackName = ""
         }
         this.awsTemplateOptions = options
+        this.loadAWSTemplate()
       }
 
     },
     async loadAWSTemplate(){
       let stacks = await getStacks()
-      console.log("STACKS",stacks)
+      console.log("Load AWS Templates!",stacks)
+      stacks.forEach(stack => {
+        if(stack.StackName == this.awsTemplateSelected){
+          this.stackName = stack.StackName
+          this.refreshStackName()
+        }
+      });
     },
     async checkStackName(){
       let stacks = await getStacks()
@@ -358,8 +366,16 @@ export default {
       }
       this.events = "Stack name not found"
     },
+    refreshStackName: async function () {
+      this.refreshEvents()
+      this.refreshOutputs()
+    },
     refreshEvents: async function () {
       this.events = await cFormEvents(this.stackName).catch((err)=> err.toString() )
+    },
+    refreshOutputs: async function () {
+      let output = await stackOutput(this.stackName).catch((err)=> err.toString() )
+      this.output = JSON.stringify(output)
     },
     reset: function () {
       this.currentFileName = ""

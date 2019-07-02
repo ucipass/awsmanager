@@ -38,15 +38,15 @@ Parameters:
     Type: String
     Default: 172.30.22.0/24
 
-  InboundSourceNetAllowed2:
-    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+  InboundSourceNetAllowed1:
+    Description: Please enter the IP range (CIDR notation) for source network allowed to access resources
     Type: String
-    Default: 172.30.22.0/24
+    Default: 0.0.0.0/0
 
   InboundSourceNetAllowed2:
-    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+    Description: Please enter the IP range (CIDR notation) for source network allowed to access resources
     Type: String
-    Default: 172.30.22.0/24
+    Default: 0.0.0.0/0
 
 
   InstanceType:
@@ -277,11 +277,13 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: "0.0.0.0/0"
+          CidrIp: 
+            Ref: InboundSourceNetAllowed1
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: "0.0.0.0/0"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 
+            Ref: InboundSourceNetAllowed2
         - IpProtocol: icmp
           FromPort: -1
           ToPort: -1
@@ -293,9 +295,15 @@ Resources:
 
 Outputs:
   PublicIP:
-    Description: "AWS EC2 Instance PublicIp Address"
+    Description: "AWS EC2 Instance Public IP Address"
     Value: 
       Fn::GetAtt:
         - EC2Instance
-        - "PublicIp"
+        - PublicIp
+  PrivateIP:
+    Description: "AWS EC2 Instance Private IP Address"
+    Value: 
+      Fn::GetAtt:
+        - EC2Instance
+        - PrivateIp
 

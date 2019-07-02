@@ -25,7 +25,7 @@ export async function createStack(stackName,template){
     let stack = await cloudformation.describeStacks({StackName: stackName}).promise()
     let stackId = stack.Stacks[0].StackId
     let result = await cloudformation.waitFor('stackCreateComplete', {StackName: stackId}).promise()
-    let output = JSON.stringify(result['Stacks'][0]['Outputs'][0])
+    let output = JSON.stringify(result['Stacks'][0]['Outputs'])
     return output
   } catch (error) {
     return Promise.reject(error)
@@ -55,7 +55,7 @@ export async function updateStack(stackName,template){
     let stack = await cloudformation.describeStacks({StackName: stackName}).promise()
     let stackId = stack.Stacks[0].StackId
     let result = await cloudformation.waitFor('stackUpdateComplete', {StackName: stackId}).promise()
-    let output = JSON.stringify(result['Stacks'][0]['Outputs'][0])
+    let output = JSON.stringify(result['Stacks'][0]['Outputs'])
     return output
   } catch (error) {
     return Promise.reject(error)
