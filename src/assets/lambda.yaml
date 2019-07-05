@@ -124,7 +124,7 @@ Resources:
     Properties:
       LogGroupName: 
         Fn::Sub: "/aws/lambda/${EnvironmentName}"
-      RetentionInDays: 90
+      RetentionInDays: 10
 
 
 Outputs:

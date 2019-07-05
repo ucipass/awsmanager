@@ -1,0 +1,121 @@
+Description:
+  S3 Demo Test
+
+Parameters:
+
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+    Default: DEMO-S3
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: aacf-s3
+      MetricsConfigurations: 
+        - Id: EntireBucket
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+        RoutingRules:
+        - RoutingRuleCondition:
+            HttpErrorCodeReturnedEquals: '404'
+            KeyPrefixEquals: out1/
+          RedirectRule:
+            HostName: www.sentinel.com
+            ReplaceKeyPrefixWith: report-404/
+  LookupStackOutputsRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: LogWriter
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+        - PolicyName: CFReader
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:DescribeStacks'
+                Resource: '*'
+  LookupStackOutputs:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt 
+        - LookupStackOutputsRole
+        - Arn
+      Code:
+        ZipFile: !Join 
+          - ''
+          - - var response = require('cfn-response');
+            - 'exports.handler = function(event, context) {'
+            - 'console.log(''REQUEST RECEIVED:\n'', JSON.stringify(event));'
+            - 'if (event.RequestType == ''Delete'') {'
+            - 'response.send(event, context, response.SUCCESS);'
+            - return;
+            - '}'
+            - var stackName = event.ResourceProperties.StackName;
+            - 'var responseData = {};'
+            - 'if (stackName) {'
+            - var aws = require('aws-sdk');
+            - var cfn = new aws.CloudFormation();
+            - 'cfn.describeStacks({StackName: stackName}, function(err, data) {'
+            - 'if (err) {'
+            - 'responseData = {Error: ''DescribeStacks call failed''};'
+            - 'console.log(responseData.Error + '':\n'', err);'
+            - 'response.send(event, context, response.FAILED, responseData);'
+            - '} else {'
+            - 'data.Stacks[0].Outputs.forEach(function(output) {'
+            - 'responseData[output.OutputKey] = output.OutputValue;'
+            - '});'
+            - 'response.send(event, context, response.SUCCESS, responseData);'
+            - '}'
+            - '});'
+            - '} else {'
+            - 'responseData = {Error: ''Stack name not specified''};'
+            - console.log(responseData.Error);
+            - 'response.send(event, context, response.FAILED, responseData);'
+            - '}'
+            - '};'
+      Runtime: nodejs4.3
+      Timeout: '30'
+    DependsOn:
+      - LookupStackOutputsRole
+
+
+
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt [S3Bucket, WebsiteURL]
+    Description: URL for website hosted on S3
+  S3BucketSecureURL:
+    Value: 
+      Fn::Join: ['', ['https://', !GetAtt [S3Bucket, DomainName]]]
+    Description: Name of S3 bucket to hold website content
+  LookupStackOutputsArn:
+    Description: >-
+      The ARN of the LookupStackOutputs function, for use in other
+      CloudFormation templates.
+    Value: !GetAtt 
+      - LookupStackOutputs
+      - Arn

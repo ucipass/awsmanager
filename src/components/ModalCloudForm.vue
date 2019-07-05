@@ -217,11 +217,13 @@
 </template>
 
 <script>
-import asav from '!raw-loader!@/assets/asav.yaml' 
+
+import lambdaServerless from '!raw-loader!@/assets/lambdaServerless.yaml' 
 import lambda from '!raw-loader!@/assets/lambda.yaml' 
+import vpcServerLinux from '!raw-loader!@/assets/vpcServerLinux.yaml'
+import asav from '!raw-loader!@/assets/asav.yaml' 
 import vpc from '!raw-loader!@/assets/vpc.yaml'
 import vpc2 from '!raw-loader!@/assets/vpc2.yaml'
-import vpcServerLinux from '!raw-loader!@/assets/vpcServerLinux.yaml'
 
 import { stackOutput, getStacks, createStack, updateStack, deleteStack, cFormEvents } from '@/components/cloudform.js'
 import {  getCookie } from "./cookies2"
@@ -270,7 +272,8 @@ export default {
         vpc: vpc,
         vpc2: vpc2,
         vpcServerLinux,
-        lambda: lambda
+        lambda: lambda,
+        lambdaServerless: lambdaServerless
       },
       awsTemplateSelected: null,
       awsTemplateOptions: [
@@ -284,10 +287,11 @@ export default {
       ],
       selectedTemplate: "vpc",
       optionTemplate: [
+        { value: "lambdaServerless", text: 'Serverless AWS web running Lambda function'},
+        { value: "lambda", text: 'API Gateway running a Lambda function'},
         { value: "vpc", text: 'Single VPC - 1 subnet'},
         { value: "vpc2", text: 'Single VPC 4 subnets'},
         { value: "asav", text: 'ASAv with a single segment'},
-        { value: "lambda", text: 'API Gateway running a Lambda function'},
         { value: "vpcServerLinux", text: 'Single VPC, 4 subnets, 1 Linux'}
       ],
       optionFile: [
@@ -375,7 +379,7 @@ export default {
     },
     refreshOutputs: async function () {
       let output = await stackOutput(this.stackName).catch((err)=> err.toString() )
-      this.output = JSON.stringify(output)
+      this.output = output
     },
     reset: function () {
       this.currentFileName = ""

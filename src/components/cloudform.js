@@ -24,7 +24,14 @@ export async function createStack(stackName,template){
     let stack = await cloudformation.describeStacks({StackName: stackName}).promise()
     let stackId = stack.Stacks[0].StackId
     let result = await cloudformation.waitFor('stackCreateComplete', {StackName: stackId}).promise()
-    let output = JSON.stringify(result['Stacks'][0]['Outputs'])
+    //let output = JSON.stringify(result['Stacks'][0]['Outputs'])
+    //console.log(result)
+    let json = result['Stacks'][0]['Outputs']
+    let output = ""
+    json.forEach((item)=>{
+      if (item.OutputKey && item.OutputKey) output += item.OutputKey+": "+item.OutputValue+"\n"
+      if (item.Description) output += "Description: "+item.Description+"\n"
+    })
     return output
   } catch (error) {
     return Promise.reject(error)
@@ -45,14 +52,22 @@ export async function updateStack(stackName,template){
 
   var params = {
     TemplateBody: template,
-    StackName: stackName
+    StackName: stackName,
+    Capabilities: ['CAPABILITY_NAMED_IAM']
   };
   try {
     await cloudformation.updateStack(params).promise()
     let stack = await cloudformation.describeStacks({StackName: stackName}).promise()
     let stackId = stack.Stacks[0].StackId
     let result = await cloudformation.waitFor('stackUpdateComplete', {StackName: stackId}).promise()
-    let output = JSON.stringify(result['Stacks'][0]['Outputs'])
+    //let output = JSON.stringify(result['Stacks'][0]['Outputs'])
+    //console.log(result)
+    let json = result['Stacks'][0]['Outputs']
+    let output = ""
+    json.forEach((item)=>{
+      if (item.OutputKey && item.OutputKey) output += item.OutputKey+": "+item.OutputValue+"\n"
+      if (item.Description) output += "Description: "+item.Description+"\n"
+    })
     return output
   } catch (error) {
     return Promise.reject(error)
@@ -147,7 +162,6 @@ export async function describeRegions(){
   }
 }
 
-
 export async function describeKeyPairs(regionParam){
   let region = regionParam ? regionParam : getCookie('region')
   let accessKeyId = getCookie('accessKeyId')
@@ -186,9 +200,8 @@ export async function stackOutput(stackName){
   };
 
   try {
-    let stack = await cloudformation.describeStacks(params).promise()
-    let output = stack.Stacks[0].Outputs
-    return output
+    let result = await cloudformation.describeStacks(params).promise()
+    return formatStackOutput(result)
   } catch (error) {
     return Promise.reject(error)
   }
@@ -222,4 +235,14 @@ export async function dirBucket(bucket){
     return Promise.reject(error)
   }
 
+}
+
+function formatStackOutput(describeStacksResults){
+    let json = describeStacksResults['Stacks'][0]['Outputs']
+    let output = ""
+    json.forEach((item)=>{
+      if (item.OutputKey && item.OutputKey) output += item.OutputKey+": "+item.OutputValue+"\n"
+      if (item.Description) output += "- Description: "+item.Description+"\n"
+    })
+    return output  
 }
