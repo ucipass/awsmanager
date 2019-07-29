@@ -221,6 +221,7 @@
 import lambdaServerless from '!raw-loader!@/assets/lambdaServerless.yaml' 
 import lambda from '!raw-loader!@/assets/lambda.yaml' 
 import vpcServerLinux from '!raw-loader!@/assets/vpcServerLinux.yaml'
+import vpcServerWin2016 from '!raw-loader!@/assets/vpcServerWin2016.yaml'
 import asav from '!raw-loader!@/assets/asav.yaml' 
 import vpc from '!raw-loader!@/assets/vpc.yaml'
 import vpc2 from '!raw-loader!@/assets/vpc2.yaml'
@@ -271,7 +272,8 @@ export default {
         asav: asav,
         vpc: vpc,
         vpc2: vpc2,
-        vpcServerLinux,
+        vpcServerLinux: vpcServerLinux,
+        vpcServerWin2016: vpcServerWin2016,
         lambda: lambda,
         lambdaServerless: lambdaServerless
       },
@@ -292,7 +294,8 @@ export default {
         { value: "vpc", text: 'Single VPC - 1 subnet'},
         { value: "vpc2", text: 'Single VPC 4 subnets'},
         { value: "asav", text: 'ASAv with a single segment'},
-        { value: "vpcServerLinux", text: 'Single VPC, 4 subnets, 1 Linux'}
+        { value: "vpcServerLinux", text: 'Single VPC, 4 subnets, 1 Linux'},
+        { value: "vpcServerWin2016", text: 'Single VPC, 4 subnets, 1 Windows 2016'}
       ],
       optionFile: [
         { value: null, text: 'No file loaded yet...' }
