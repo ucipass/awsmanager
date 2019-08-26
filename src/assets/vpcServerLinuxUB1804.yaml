@@ -1,5 +1,5 @@
 Description:
-  VPC with 2AZ, 4Subnets, 1AWS Linux
+  VPC with 2AZ, 4Subnets, 1 Linux Ubuntu 18.04
 
 Parameters:
 
@@ -52,7 +52,7 @@ Parameters:
   InstanceType:
     Description: AWS Linux EC2 instance type
     Type: String
-    Default: t3.small
+    Default: t2.medium
     AllowedValues: [t2.nano, t2.micro, t2.small, t2.medium, t2.large, t2.xlarge, t2.2xlarge,
       t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
       m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
@@ -63,20 +63,52 @@ Parameters:
       i3.xlarge, i3.2xlarge, i3.4xlarge, i3.8xlarge,
       d2.xlarge, d2.2xlarge, d2.4xlarge, d2.8xlarge]
 
-  AmiID:
-    Type:  'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
-
 Mappings: 
- RegionMap: 
-  "us-east-1": 
-   AMI: "ami-0273df992a343e0d6"
-  "us-east-2":
-   AMI: "ami-033a0960d9d83ead0"
-  "us-west-1":
-   AMI: "ami-057a852b5ed4b66bc"
-  "us-west-2":
-   AMI: "ami-04ef7170e45541f07"
+  RegionMap: 
+    ap-east-1: 
+      AMI: ami-e0ff8491 
+    ap-northeast-1: 
+      AMI: ami-0cb1c8cab7f5249b6 
+    ap-south-1: 
+      AMI: ami-0cf8402efdb171312 
+    ap-southeast-1: 
+      AMI: ami-099d318f80eab7e94 
+    ca-central-1: 
+      AMI: ami-0bc1dd4eb012a451e 
+    eu-central-1: 
+      AMI: ami-0cdab515472ca0bac 
+    eu-north-1: 
+      AMI: ami-c37bf0bd 
+    eu-west-1: 
+      AMI: ami-01cca82393e531118 
+    me-south-1: 
+      AMI: ami-0383ae5adb5262e3e 
+    sa-east-1: 
+      AMI: ami-094c359b4d8c6a8ca 
+    us-east-1: 
+      AMI: ami-064a0193585662d74 
+    us-west-1: 
+      AMI: ami-056d04da775d124d7 
+    us-gov-west-1: 
+      AMI: ami-60501e01 
+    us-gov-east-1: 
+      AMI: ami-cce606bd 
+    ap-northeast-2: 
+      AMI: ami-081626bfb3fbc9f49 
+    ap-southeast-2: 
+      AMI: ami-08a648fb5cc86fb74 
+    eu-west-2: 
+      AMI: ami-0a7c91b6616d113b1 
+    us-east-2: 
+      AMI: ami-021b7b04f1ac696c2 
+    us-west-2: 
+      AMI: ami-09a3d8a7177216dcf 
+    ap-northeast-3: 
+      AMI: ami-09c2595cb5921d41f 
+    eu-west-3: 
+      AMI: ami-033e0056c336ecff0 
+
+
 
 Resources:
 #############################################################################################
@@ -261,11 +293,17 @@ Resources:
       KeyName: 
         Ref: KeyPairName
       ImageId: 
-        Ref: AmiID
+        Fn::FindInMap: 
+          - 
+            RegionMap
+          - 
+            Ref: "AWS::Region"
+          - 
+            AMI
       Tags:
         - Key: Name
           Value: 
-            Fn::Sub: ${EnvironmentName}-AWS-LINUX
+            Fn::Sub: ${EnvironmentName}-UB1804-LINUX
 
   InstanceSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
