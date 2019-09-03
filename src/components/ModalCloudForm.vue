@@ -221,6 +221,7 @@
 import lambdaServerless from '!raw-loader!@/assets/lambdaServerless.yaml' 
 import lambda from '!raw-loader!@/assets/lambda.yaml' 
 import vpcServerLinux from '!raw-loader!@/assets/vpcServerLinux.yaml'
+import vpcServerLinuxCert from '!raw-loader!@/assets/vpcServerLinuxCert.yaml'
 import vpcServerLinuxUB1804 from '!raw-loader!@/assets/vpcServerLinuxUB1804.yaml'
 import vpcServerWin2016 from '!raw-loader!@/assets/vpcServerWin2016.yaml'
 import asav from '!raw-loader!@/assets/asav.yaml' 
@@ -274,6 +275,7 @@ export default {
         vpc: vpc,
         vpc2: vpc2,
         vpcServerLinux: vpcServerLinux,
+        vpcServerLinuxCert: vpcServerLinuxCert,
         vpcServerLinuxUB1804: vpcServerLinuxUB1804,
         vpcServerWin2016: vpcServerWin2016,
         lambda: lambda,
@@ -297,6 +299,7 @@ export default {
         { value: "vpc2", text: 'Single VPC 4 subnets'},
         { value: "asav", text: 'ASAv with a single segment'},
         { value: "vpcServerLinux", text: 'Single VPC, 4 subnets, 1 AWS Linux '},
+        { value: "vpcServerLinuxCert", text: 'Single VPC, 4 subnets, 1 AWS Linux Web Server + Certificate'},
         { value: "vpcServerLinuxUB1804", text: 'Single VPC, 4 subnets, 1 Ubuntu 18.04 Linux'},
         { value: "vpcServerWin2016", text: 'Single VPC, 4 subnets, 1 Windows 2016'}
       ],
