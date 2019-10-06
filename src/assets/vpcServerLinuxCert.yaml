@@ -61,7 +61,7 @@ Parameters:
   Hostname:
     Description: NO-IP hostname for dynamic DNS updates
     Type: String
-    Default: certificate3.ddns.net
+    Default: certificate.ddns.net
 
 
   InstanceType:
@@ -327,7 +327,7 @@ Resources:
               exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
                 echo "Hello from user-data!"
                 apt-get -y update
-                apt-get install -y nginx
+                apt-get install -y nginx python3-pip python3-venv unbound
                 apt-get install software-properties-common -y
                 add-apt-repository universe -y
                 add-apt-repository ppa:certbot/certbot -y
@@ -341,12 +341,31 @@ Resources:
                 mkdir /var/www/html/cert
                 cp /etc/letsencrypt/live/${hostname}/*.pem /var/www/html/cert
                 sed -e 's/\t/ /g' -e 's/^ *#.*//g' -e '/^$/d' -i /etc/nginx/sites-available/default
-                sed -i 's/location/location \/cert\/ { autoindex on; }\n location/g' /etc/nginx/sites-available/default
+                sed -i 's/location/location \/cert\/ { autoindex on; }\n location \/dns-query \n {\n  proxy_set_header Host $http_host;\n  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n  proxy_redirect off;\n  proxy_buffering off;\n  proxy_pass http:\/\/127.0.0.1:8080;\n }\n location/g' /etc/nginx/sites-available/default
                 chmod 755 /var/www/html/cert
                 chmod 644 /var/www/html/cert/*
                 chown -R www-data /var/www/html/*
                 systemctl restart nginx.service
-            - 
+                systemctl enable unbound
+                systemctl start unbound
+                su ubuntu -c "pip3 install doh-proxy"
+                touch /lib/systemd/system/doh.service
+                echo "[Unit]" >> /lib/systemd/system/doh.service
+                echo "Description=DOH" >> /lib/systemd/system/doh.service
+                echo "[Service]" >> /lib/systemd/system/doh.service
+                echo "ExecStart=/home/ubuntu/.local/bin/doh-httpproxy --listen-address 127.0.0.1 --port 8080 --debug" >> /lib/systemd/system/doh.service
+                echo "WorkingDirectory=/home/ubuntu" >> /lib/systemd/system/doh.service
+                echo "Restart=always" >> /lib/systemd/system/doh.service
+                echo "StandardOutput=file:/var/log/doh.log" >> /lib/systemd/system/doh.service
+                echo "StandardError=file:/var/loca/doh-error.log" >> /lib/systemd/system/doh.service
+                echo "SyslogIdentifier=doh" >> /lib/systemd/system/doh.service
+                echo "User=ubuntu" >> /lib/systemd/system/doh.service
+                echo "Group=ubuntu" >> /lib/systemd/system/doh.service
+                echo "[Install]" >> /lib/systemd/system/doh.service 
+                echo "WantedBy=multi-user.target" >> /lib/systemd/system/doh.service 
+                systemctl enable doh.service
+                systemctl start doh.service
+            -
               username: 
                 Ref: Username
               password:

@@ -299,8 +299,8 @@ export default {
         { value: "vpc2", text: 'Single VPC 4 subnets'},
         { value: "asav", text: 'ASAv with a single segment'},
         { value: "vpcServerLinux", text: 'Single VPC, 4 subnets, 1 AWS Linux '},
-        { value: "vpcServerLinuxCert", text: 'Single VPC, 4 subnets, 1 Ubuntu Web Server + Letsencrypt Certificate for NO-IP ddns.net domain'},
         { value: "vpcServerLinuxUB1804", text: 'Single VPC, 4 subnets, 1 Ubuntu 18.04 Linux'},
+        { value: "vpcServerLinuxCert", text: 'Single VPC, 4 subnets, 1 Ubuntu Web, DOH, Letsencrypt Certificate with NO-IP ddns.net domain'},
         { value: "vpcServerWin2016", text: 'Single VPC, 4 subnets, 1 Windows 2016'}
       ],
       optionFile: [
