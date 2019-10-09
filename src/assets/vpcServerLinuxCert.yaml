@@ -8,6 +8,21 @@ Parameters:
     Type: String
     Default: AA-TEST
 
+  Hostname:
+    Description: NO-IP hostname for dynamic DNS updates
+    Type: String
+    Default: certificate.ddns.net
+
+  Username:
+    Description: NO-IP username
+    Type: String
+    Default: aarato73
+
+  Password:
+    Description: NO-IP password
+    Type: String
+    Default: password
+
   KeyPairName:
     Description: An environment name that will be prefixed to resource names
     Type: String
@@ -47,22 +62,6 @@ Parameters:
     Description: Please enter the IP range (CIDR notation) for source network allowed to access resources
     Type: String
     Default: 0.0.0.0/0
-
-  Username:
-    Description: NO-IP username
-    Type: String
-    Default: aarato73
-
-  Password:
-    Description: NO-IP password
-    Type: String
-    Default: password
-
-  Hostname:
-    Description: NO-IP hostname for dynamic DNS updates
-    Type: String
-    Default: certificate.ddns.net
-
 
   InstanceType:
     Description: AWS Linux EC2 instance type
@@ -325,46 +324,113 @@ Resources:
             - |
               #!/bin/bash -xe
               exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-                echo "Hello from user-data!"
-                apt-get -y update
-                apt-get install -y nginx python3-pip python3-venv unbound
-                apt-get install software-properties-common -y
-                add-apt-repository universe -y
-                add-apt-repository ppa:certbot/certbot -y
-                apt-get update -y
-                apt-get install certbot python-certbot-nginx -y
-                curl http://169.254.169.254/latest/meta-data/public-ipv4 > /tmp/ip.txt
-                curl https://${username}:${password}@dynupdate.no-ip.com/nic/update?hostname=${hostname}
-                echo "Sleeping for 60 seconds for DNS TTL to expire"
-                sleep 60
-                certbot --nginx --non-interactive --agree-tos -m junk@arato.biz --domain ${hostname}
-                mkdir /var/www/html/cert
-                cp /etc/letsencrypt/live/${hostname}/*.pem /var/www/html/cert
-                sed -e 's/\t/ /g' -e 's/^ *#.*//g' -e '/^$/d' -i /etc/nginx/sites-available/default
-                sed -i 's/location/location \/cert\/ { autoindex on; }\n location \/dns-query \n {\n  proxy_set_header Host $http_host;\n  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n  proxy_redirect off;\n  proxy_buffering off;\n  proxy_pass http:\/\/127.0.0.1:8080;\n }\n location/g' /etc/nginx/sites-available/default
-                chmod 755 /var/www/html/cert
-                chmod 644 /var/www/html/cert/*
-                chown -R www-data /var/www/html/*
-                systemctl restart nginx.service
-                systemctl enable unbound
-                systemctl start unbound
-                su ubuntu -c "pip3 install doh-proxy"
-                touch /lib/systemd/system/doh.service
-                echo "[Unit]" >> /lib/systemd/system/doh.service
-                echo "Description=DOH" >> /lib/systemd/system/doh.service
-                echo "[Service]" >> /lib/systemd/system/doh.service
-                echo "ExecStart=/home/ubuntu/.local/bin/doh-httpproxy --listen-address 127.0.0.1 --port 8080 --debug" >> /lib/systemd/system/doh.service
-                echo "WorkingDirectory=/home/ubuntu" >> /lib/systemd/system/doh.service
-                echo "Restart=always" >> /lib/systemd/system/doh.service
-                echo "StandardOutput=file:/var/log/doh.log" >> /lib/systemd/system/doh.service
-                echo "StandardError=file:/var/loca/doh-error.log" >> /lib/systemd/system/doh.service
-                echo "SyslogIdentifier=doh" >> /lib/systemd/system/doh.service
-                echo "User=ubuntu" >> /lib/systemd/system/doh.service
-                echo "Group=ubuntu" >> /lib/systemd/system/doh.service
-                echo "[Install]" >> /lib/systemd/system/doh.service 
-                echo "WantedBy=multi-user.target" >> /lib/systemd/system/doh.service 
-                systemctl enable doh.service
-                systemctl start doh.service
+              echo "UPDATING DDNS RECORD"
+              curl https://${username}:${password}@dynupdate.no-ip.com/nic/update?hostname=${hostname}
+              echo "Need 60 seconds for DNS TTL to expire"
+              env TZ=America/Chicago date
+              apt-get -y update
+              apt-get install -y nginx
+              echo "<html><body><h1>Please wait for the server build to finish!</h1></body></html>" > /var/www/html/index.html          
+              apt-get install -y python3-pip python3-venv unbound apache2-utils
+              apt-get install software-properties-common -y
+              add-apt-repository universe -y
+              add-apt-repository ppa:certbot/certbot -y
+              apt-get update -y
+              apt-get install certbot python-certbot-nginx -y
+              su ubuntu -c "pip3 install doh-proxy"                
+              echo "CERTBOT NGINX SETUP DIRECTORIES"
+              certbot --nginx --non-interactive --agree-tos -m junk@arato.biz --domain ${hostname}
+              mkdir /var/www/html80
+              chmod 755 /var/www/html80
+              mkdir /var/www/html/cert
+              chmod 755 /var/www/html/cert
+              echo "INDEX.HTML ON PORT 443"
+              rm /var/www/html/index.html
+              cat <<EOT >> /var/www/html/index.html
+              <html><body>
+              <h1>Welcome to ${hostname} on port 443! </h1>
+              <p>IP address -> `curl http://169.254.169.254/latest/meta-data/public-ipv4`</p>
+              <p>Signed certificates are available via secured link -> <a href="cert">${hostname}</a></p>
+              <h4>Firefox Settings for DNS over HTTP (about:config)<h4>
+              <p>network.trr.bootstrapAddress  -> `curl http://169.254.169.254/latest/meta-data/public-ipv4`</p>
+              <p>network.trr.custom_uri -> https://${hostname}/dns-query </p>
+              <p>network.trr.uri -> https://${hostname}/dns-query </p>
+              <p>network.trr.mode -> 0(off),2(TRR Pref.),3(TRR Only) </p>
+              </body></html> 
+              EOT
+              echo "INDEX.HTML ON PORT 80"
+              cat <<EOT >> /var/www/html80/index.html
+              <html><body>
+              <h1>Welcome to ${hostname} on port 80! </h1>
+              <p>IP address -> `curl http://169.254.169.254/latest/meta-data/public-ipv4`</p>
+              <p>Secure site is available via port 443 -> <a href='https://${hostname}'>${hostname}</a></p>
+              </body></html>
+              EOT
+              echo "SETTING UP PERMISSIONS"
+              cp /etc/letsencrypt/live/${hostname}/*.pem /var/www/html/cert
+              chmod 644 /var/www/html/cert/*
+              chown -R www-data /var/www/*
+              htpasswd -bc /etc/nginx/htpasswd ${username} ${password}
+              echo "CHANGING NGINX CONFIG FILE"
+              rm /etc/nginx/sites-available/default
+              cat <<EOT >> /etc/nginx/sites-available/default
+              server {
+               listen 80 default_server;
+               root /var/www/html80;
+               index index.html;
+               location / { try_files \$uri \$uri/ =404; }
+              }
+              server {
+               root /var/www/html;
+               index index.html;
+               server_name ${hostname};
+               listen 443 ssl;
+               ssl_certificate /etc/letsencrypt/live/${hostname}/fullchain.pem;
+               ssl_certificate_key /etc/letsencrypt/live/${hostname}/privkey.pem;
+               ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+               ssl_session_cache shared:le_nginx_SSL:1m;
+               ssl_session_timeout 1440m;
+               ssl_protocols TLSv1.2 TLSv1.3;
+               ssl_prefer_server_ciphers on;
+               location / {
+                try_files \$uri \$uri/ =404;
+               }
+               location /cert/ {
+                autoindex on;
+                auth_basic "Restricted";
+                auth_basic_user_file /etc/nginx/htpasswd;
+               }
+               location /dns-query {
+                proxy_set_header Host \$http_host;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                proxy_redirect off;
+                proxy_buffering off;
+                proxy_pass http://127.0.0.1:8080;
+               }
+              }
+              EOT
+              systemctl restart nginx.service
+              systemctl enable unbound
+              systemctl start unbound
+              echo "CREATING DOH SERVICE"
+              cat <<EOT >> /lib/systemd/system/doh.service
+              [Unit]
+              Description=DOH
+              [Service]
+              ExecStart=/home/ubuntu/.local/bin/doh-httpproxy --listen-address 127.0.0.1 --port 8080 --debug
+              WorkingDirectory=/home/ubuntu
+              Restart=always
+              StandardOutput=file:/var/log/doh.log
+              StandardError=file:/var/loca/doh-error.log
+              SyslogIdentifier=doh
+              User=ubuntu
+              Group=ubuntu
+              [Install] 
+              WantedBy=multi-user.target 
+              EOT
+              systemctl enable doh.service
+              systemctl start doh.service
+              echo "========= USER-DATA END =========="
             -
               username: 
                 Ref: Username
@@ -420,6 +486,9 @@ Resources:
             Fn::Sub: ${EnvironmentName}-SSH-HTTP-ICMP-SG
 
 Outputs:
+  Hostname:
+    Value:
+      Ref: Hostname
   PublicIP:
     Description: "AWS EC2 Instance Public IP Address"
     Value: 
